@@ -1,0 +1,63 @@
+Stack Overflow Problems
+=======================
+This file gives some hints on addressing this problem on different platforms.
+
+Under Unix-like systems, programs may throw a "Segmentation Fault"
+error.  This can be due to stack overflow, especially from recursive 
+function calls or huge data sets.  In our demo program "Pi"
+(see "$(CORE_PATH)/progs/pi"), we compute Pi to any number of desired
+bits or digits.  Here are some test results on when stack overflows
+will occur on different platforms, using their default stack sizes.  
+
+	platform	default size	# bits	# digits
+        ===============================================================
+	SunOS/Solaris	8172K bytes	<=39875	<=12003	(Shared Version)
+	Linux 		8172K bytes	<=62407	<=18786
+	Windows		1024K bytes	<=10581	<=3185	(Release Version)
+	cygwin		2048K bytes	<=3630	<=1092
+	
+If we now change their stack size to their maximum, our Pi program can 
+compute more bits. 
+
+	platform	stack size	# bits		# digits
+        ===============================================================
+	SunOS/Solaris	unlimited	>=100,000	30102
+	Linux		8172K bytes	<=33,219,282	<=10,000,000(?)
+	Windows		32768K bytes	<=343077	<=12041
+	
+How to change the default stack size on different platforms:
+In general, under Unix-like platforms, the stack size is controlled 
+by environment variable, not the program itself.  
+So you cannot pass any flags to the 
+compilers, like gcc, to setup stack size.  Under Windows platforms, the
+stack size information is contained in the executable files.  It can be set 
+during compilation in Visual C++, but this is not available in gcc. 
+Alternatively, Microsoft provides a program "editbin.exe" which can change the
+executable files directly.  Here are more details:
+
+SunOS/Solaris:
+==============
+	> limit			 # shows the current stack size
+	> unlimit		 # changes the stack size to unlimited
+	> setenv STACKSIZE 32768 # limits the stack size to 32M bytes
+
+Linux:
+======
+	> ulimit -a		# shows the current stack size
+	> ulimit -s 32768	# sets the stack size to 32M bytes
+
+Windows (during compilation):
+=============================
+	1. Select "Project->Setting".
+	2. Select "Link" page.
+	3. Select "Category" to "Output".
+	4. Type your preferred stack size in "Reserve:" field under "Stack 
+	   allocations". eg, 32768 in decimal or 0x20000 in hexadecimal.
+
+Windows (to modify the executable file):
+=======================================
+There are two programs included in Microsoft Visual Studio, "dumpbin.exe"
+ and "editbin.exe".  Run "dumpbin /headers executable_file", and you can see 
+the "size of stack reserve" information in "optional header values".  Run 
+"editbin /STACK:size" to change the default stack size.
+

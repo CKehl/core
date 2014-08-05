@@ -1,0 +1,193 @@
+
+/*! \mainpage Core Library 2
+ *
+ * 
+ * \section intro_sec Introduction
+ *
+ * The Core Library is based on a novel number core. This library provides an 
+ * API which defines four levels of numerical accuracy. The main intent of 
+ * this implementation was to support the Exact Geometric Computation (EGC) 
+ * approach to numerically robust algorithms. Nevertheless, it is quite general
+ * and can be used in any other application where numerical accuracy must be 
+ * guaranteed.
+ *
+ * Our library provides users with a simple and natural numerical API to 
+ * support the following concepts of accuracy: 
+ *   - LEVEL I:   Machine Accuracy. This can be identified with the IEEE 
+ *                standard.
+ *   - LEVEL II:  Arbitrary Accuracy. If you specify 200 bits of accuracy (in 
+ *                relative or absolute terms), this guarantees that you will 
+ *                not experience overflow or underflow until you exceed 200 
+ *                bits. This is similar to what any computer algebra system 
+ *                (say, Maple) gives you.
+ *   - LEVEL III: Guaranteed Accuracy. This is the novel part: thus, you can 
+ *                specify 1 relative bit or 10 absolute bits of accuracy at 
+ *                this level. Note that 1 relative bit ensures that you get 
+ *                exact signs of real numbers, the critical idea in Exact 
+ *                Geometric Computation.
+ *   - LEVEL IV:  Mixed Accuracy. This localizes the the previous accuracy 
+ *                levels to individual variables, for better control of 
+ *                accuracy and efficiency.
+ *
+ * Every C/C++ program (perhaps with small changes) which can access any of 
+ * the first 3 levels. This property has many applications, especially for 
+ * debugging. A program written for Level IV accuracy can also access any of 
+ * the lower levels.
+ *
+ * \section features_sec Features
+ *
+ *   A key design goal is to allow any standard C/C++ program to access
+ *    critical CORE facilities with minimal changes to the program.  Most
+ *    basic standalone C++ programs can be ``CORE-ized'' with little fuss.
+ *    In the ideal case, one only has to insert the following statement
+ * 
+ *                 #include "CORE/CORE.h"
+ * 
+ *    following all the standard include statements.  The default accuracy
+ *    is Level III.  At this level, a variable with the machine type
+ *    "double" or "long" is redefined as an instance of the class "Expr"
+ *    (a C++ class).  All comparisons involving Expr are error-free,
+ *    provided your expressions involve only the four arithmetic operations
+ *    and square-roots.  Example:
+ * 
+ *                 double x, y, a, b;
+ *                 x = 2; y = 3;
+ *                 a = sqrt(x) + sqrt(y);
+ *                 b = sqrt(x + y + 2*sqrt(x)*sqrt(y));
+ *                 if (a == b)  cout << "Equal   (CORRECT!)\n";
+ *                     else     cout << "Not Equal (ERROR!)\n";
+ * 
+ *    When run in Level III, the expressions for a and b are always equal
+ *    regardless of the values (x=2 and y=3) assigned to x and y.
+ *    
+ *    In the framework of EGC, error-free comparisons amount to
+ *    computing the ''exact geometry'' in your programs.  Nonrobustness
+ *    issues from round-off errors are thereby abolished.
+ * 
+ *    A tutorial in this "doc" subdirectory, plus the many
+ *    sample programs in the "progs" subdirectory, should allow you
+ *    to start writing CORE programs rather quickly.   In particular,
+ *    you may use the examples in progs/generic as template
+ *    to develop your own CORE programs.  For extra functionality, 
+ *    we define domain specific "CORE eXtensions" (COREX for short). 
+ *    These include a linear algebra COREX and a geometry
+ *    COREX.  They are still rudimentary.
+ *    
+ *    The Core Library is relatively small.  The "base distribution"
+ *    of Version 1.7, which includes source code and examples, is less
+ *    than 800 KB.  The "full distribution" which includes the base distribution,
+ *    documentation and gmp, is over 3.5MB.  The library has been tested
+ *    on solaris, linux, cygwin and Windows.  It is
+ *    also fully compatible with CGAL.
+ * 
+ *    NOTE ON TERMINOLOGY.
+ *    "Core" is not an abbreviation; we chose this name to suggest its
+ *    role as the "numerical core" for robust geometric computations.
+ *    It is also to remind ourselves (the designers) that "cores" are
+ *    usually small.  However, we use the capitalized sequence "CORE"
+ *    as a shorthand for "Core Library" (e.g., a CORE program).
+ * 
+ *
+ * \section install_sec Installation
+ *
+ *    \subsection install_gmp_sec Install GMP
+ *     <tt>make first</tt>   // configure GMP \n
+ *     <tt>make second</tt>  // build GMP \n
+ *     <tt>make third</tt>   // install GMP \n
+ *	\n
+ *	The target <tt>make gmp</tt> is equivalent to these three steps.\n
+ *	\n
+ *    \subsection install_mpfr_sec Install MPFR
+ *     <tt>make fourth</tt>  // configure MPFR \n
+ *     <tt>make fifth</tt>   // build MPFR \n
+ *     <tt>make sixth</tt>   // install MPFR \n
+ *	\n
+ *	The target <tt>make mpft</tt> is equivalent to these three steps.\n
+ *	\n
+ *    \subsection install_core_sec Install CORE
+ *     <tt>make</tt>         /// build CORE \n
+ *
+ * \section credit_sec Credit
+ *
+ * Chee Yap, Zilin Du, Vikram Sharma, Chen Li, etc.
+ *
+ * \section license_sec License
+ *
+ * QPL 1.0
+ */
+
+// define groups
+
+/// \defgroup GlobalFunctions Global Functions
+
+///   \defgroup BigIntGlobalFunctions BigInt Global Functions
+///   \ingroup GlobalFunctions
+
+///   \defgroup BigRatGlobalFunctions BigRat Global Functions
+///   \ingroup GlobalFunctions
+
+///   \defgroup BigFloatGlobalFunctions BigFloat Global Functions
+///   \ingroup GlobalFunctions
+
+///   \defgroup BigFloat2GlobalFunctions BigFloat2 Global Functions
+///   \ingroup GlobalFunctions
+
+
+/// \defgroup ArithmeticOperators Arithmetic Operators
+
+///   \defgroup BigIntArithmeticOperators BigInt Arithmetic Operators
+///   \ingroup ArithmeticOperators
+
+///   \defgroup BigRatArithmeticOperators BigRat Arithmetic Operators
+///   \ingroup ArithmeticOperators
+
+///   \defgroup BigFloatArithmeticOperators BigFloat Arithmetic Operators
+///   \ingroup ArithmeticOperators
+
+///   \defgroup BigFloat2ArithmeticOperators BigFloat2 Arithmetic Operators
+///   \ingroup ArithmeticOperators
+
+
+/// \defgroup IostreamOperators Iostream Operators
+
+///   \defgroup BigIntIostreamOperators BigInt Iostream Operators
+///   \ingroup IostreamOperators
+
+///   \defgroup BigRatIostreamOperators BigRat Iostream Operators
+///   \ingroup IostreamOperators
+
+///   \defgroup BigFloatIostreamOperators BigFloat Iostream Operators
+///   \ingroup IostreamOperators
+
+///   \defgroup BigFloat2IostreamOperators BigFloat2 Iostream Operators
+///   \ingroup IostreamOperators
+
+
+/// \defgroup ComparisonOperators Comparison Operators
+
+///   \defgroup BigIntComparisonOperators BigInt Comparison Operators
+///   \ingroup ComparisonOperators
+
+///   \defgroup BigRatComparisonOperators BigRat Comparison Operators
+///   \ingroup ComparisonOperators
+
+///   \defgroup BigFloatComparisonOperators BigFloat Comparison Operators
+///   \ingroup ComparisonOperators
+
+///   \defgroup BigFloat2ComparisonOperators BigFloat2 Comparison Operators
+///   \ingroup ComparisonOperators
+
+
+/// \defgroup BackCompatiableFunctions Back-Compatiable Functions
+
+///   \defgroup GlobalBackCompatiableFunctions Global Back-Compatiable Functions
+///   \ingroup BackCompatiableFunctions
+
+///   \defgroup BigIntBackCompatiableFunctions BigInt Back-Compatiable Functions
+///   \ingroup BackCompatiableFunctions
+
+///   \defgroup BigRatBackCompatiableFunctions BigRat Back-Compatiable Functions
+///   \ingroup BackCompatiableFunctions
+
+///   \defgroup BigFloatBackCompatiableFunctions BigFloat Back-Compatiable Functions
+///   \ingroup BackCompatiableFunctions

@@ -1,0 +1,497 @@
+% file: history.tex
+% 	CORE Library
+% 	$Id: history.tex,v 1.1.1.1 2007/04/09 23:35:54 exact Exp $ 
+
+\documentclass[12pt]{article}
+
+\usepackage{amssymb}
+\input{macro}
+
+\draftdimensions
+
+
+\title{What Was New In Core Library}
+
+
+\begin{document}
+\maketitle
+
+\section*{}
+This is an accumulated list of the
+``What is New'' information, released with
+each version of the Core Library.
+
+\section{Version 1.1, Dec 1998}
+The initial implementation
+by Karamcheti, Li, Pechtchanski and Yap \cite{klpy:core:98}
+was based on the \rexpr\ package,
+designed by Dub\'e and Yap (circa 1993)
+and rewritten by Ouchi \cite{ouchi:thesis}.  
+Details about the underlying 
+algorithms (especially in \BF) and their error analysis
+may be found in the Ouchi's thesis \cite{ouchi:thesis}.
+
+\section{Version 1.2, Sep 1999}
+Incorporates the BFMS root bound and other 
+techniques to give significant speedup to the system. 
+
+   \begin{itemize}
+   \item{New root bound implemented.}
+   This is based on the paper of
+   Burnikel et al \cite{mehlhorn-etal:sep-bd:00}. 
+   
+   \item{Dynamic error bound checking.}
+   The system utilizes the error bound of the computed 
+   approximate value to decide whether or not
+   to re-evaluate a node in an expression.  This is faster than
+   just looking at the precision bound at that node because
+   the precision bound is only a lower bound on the computed
+   precision.
+   
+   \item{Progressive and non-progressive evaluation.} 
+   
+   \item{Expression constructor from string.} 
+   
+   \item{Exception handling.}  We introduce a simple facility
+   for \cpp\ exception handling. See the file
+   \includedir/{\tt CoreExceptions.h}.
+
+   \end{itemize}
+
+\section{Version 1.3, Sep 2000}
+Two improvements (new root bounds
+and faster big number packages based on \lidia/\cln)
+gave significant general speedup.  
+More examples, including a hypergeometric function package
+and a randomized geometric theorem prover.
+
+	\begin{itemize}
+	\item
+	Implemented new root bounds as described in
+	\cite{li-yap:constructiveBound:00}.  This 
+	gave significant speedups for the important case
+	of expressions with division nodes.
+	\item
+	Printout of numbers is improved so that all but the last digit
+	of any printout is correct.
+	The last digit can be off by $\pm 1$.
+	\item
+	Input of numbers (string constructors and stream input) is
+	improved to allow both exact rational inputs as well as
+	approximations.  Uses the global variable {\tt defInputDgt}.
+	\item
+	 A much faster big number kernel (taken from
+	\lidia/\cln) is incorporated.  We can more easily
+	incorporate other big number kernels (such as \gnu's \gmp),
+	especially those supported by \lidia.
+	Unfortunately, we have to drop support for those compilers not
+	compatible with \lidia.
+	\item
+	Application program:
+	Contribution of a hypergeometric package
+        from Maria Elefteriou and Jose Moreira from IBM Watson Center.
+        You can compute any of the elementary functions (log, exp,
+        sine, etc) to any desired absolute precision.  This
+	can be used to compute constants such as $\pi$ or $e$ to
+	any desired precision.
+	\item
+	Application program:
+	improved geometric theorem prover \cite{tyl:zero-test:00}
+	based on randomized testing of radical expressions.
+	\item
+	Sample timing: it took 55.0 seconds under \core\ 1.3
+	to run all the test programs in the distribution.
+	Under \core\ 1.2.2, the time is 1040.38 seconds.
+	This test was performed on a Sun UltraSPARC-IIi (440 MHz, 512 MB),
+	and corresponds to the ``make test''
+	command in the {\tt \$(CORE\_PATH)} directory.
+	\end{itemize}
+
+\section{Version 1.4, Sep 2001}
+Our big integer and big rational packages
+are now based on \gmp, away from \lidia/\cln.
+Introduced a floating point filter facility,
+incremental square root computation,
+improved precision-sensitive evaluation algorithms.
+
+	\begin{itemize}
+        \item
+	File I/O for big numbers.  In particular the storage of Hex
+                representation in a files allows large constants to be
+                input or output in linear time.
+	\item
+        Incremental square-roots now implemented.  There can be
+                significant speedups.
+ 	\item
+	BFS filter option
+        \item
+	Introduced the "escape precision" mechanism, and a recommended
+        	{\tt CORE\_init()} method.
+	\item
+        Improved conversion from BigFloat to machine double: 
+                overflows, etc, are indicated.
+        \item
+	Improved geometry extension library                
+	\item
+	Improved numerical I/O.
+	I/O of big rational number format,
+        BigInt constructor from string, support for scientific as well
+	as positional notation.
+	\item
+        Bug fixes: Steve Robbins discovered that
+		\texttt{defAbsPrec} is not always properly initialized.
+                The solution is to make \texttt{CORE\_posInfty},
+                \texttt{CORE\_negInfty} and \texttt{CORE\_NaNLong}
+		global variables, not static member variables.
+	\end{itemize}
+
+\section{Version 1.5, Aug 2002}
+Improvements in speed from better root bounds (k-ary bounds),
+        CGAL compatibility changes, file I/O for large mathematical constants
+        (BigInt, BigFloat, BigRat), improved hypergeometric package.
+
+    \begin{itemize}
+        \item
+	Namespace Issues:
+          Introduced namespace \texttt{CORE}.
+       \item
+	Compatibility with \cgal\ Library:
+          Introduced \texttt{inc/CGAL\_Expr.h} for easy adaptation
+	  of \cgal\ programs to use \corelib.  Sample programs are found
+	  under in the cgal directory under \examplesdir.
+       \item
+         Better root bounds (including the new BFMSS bound 
+	 and a new 2-ary version of BFMSS).  Various minor improvements.
+	 Overall speedup can be greatly improved especially when
+	 rootbound limits are reached.
+          Some timings for various test programs found
+          under \examplesdir (just based on the new BFMSS bound)
+	  \begin{verbatim}
+           (1) progs/pi, executing "./pi 10000 0 0"
+                       Core 1.5: 0.79 sec
+                       Core 1.4: 2.37 sec
+                       Core 1.3: 2.93 sec
+           (2) progs/compare, running "./compare 100 n" (for n=2 and n=5)
+                       Core 1.5:       n=2, 0.01 sec;     n=5, 0.03 sec
+                       Core 1.4:       n=2, 22.58 sec;    n=5, 56.61 sec
+                       Core 1.3:       n=2, 36.12 sec;    n=5, 90.59 sec
+           (3) progs/delaunay, executing "make test"
+                       Core 1.5: 0.43 sec
+                       Core 1.4: 0.43 sec
+                       Core 1.3: 0.49 sec
+           (4) progs/nestedSqrt, executing "./nestedSqrt 8"
+                       Core 1.5: 0.62 sec
+                       Core 1.4: 0.82 sec
+                       Core 1.3: 447.29 sec
+	 \end{verbatim}
+           These tests were done on a Solaris machine, SunBlade 1000
+               (2x Ultrasparc III 750MHz, 8MB Cache, 2GB Memory)
+
+	\item
+           Improvements of the hypergeometric package
+               (automatic error analysis, argument reduction,
+               partial parameter preprocessing, improved $\log(x)$ series)
+               In particular, the elementary functions
+               found in \texttt{math.h} are reasonably supported:
+	       	$\log()$, $\exp()$, $\sin()$, $\cos()$, $\arcsin()$,
+                $\arccos()$, $\tan()$, $\arctan()$, $\textrm{erf}()$.
+        \item
+	   Some development of other Levels of Accuracy:
+	   (a) Level 4 can now be explicitly invoked.
+	   (b) Level 2 programs can now compile without error:
+		to achieve this, we have to merge the API for Expr
+		and Real classes.
+        \item
+		New Polynomial Class (univariate case) may be found in
+		\examplesdir, under \texttt{poly}, with
+               applications to Sturm Sequences and Newton Iteration.
+        \item
+		Reorganization of \real\ class:
+               new abstract base class \realrep\ (previously no such class).
+               \real\ class is no longer virtual (no longer points to itself
+                       or have reference counter, but points to \realrep).
+                Streamlined code for \texttt{Real.cpp} by introducing templates.
+		The classes \texttt{AddRep} and \texttt{SubRep} are now
+		merged by templates, to improve maintenability.
+        \item
+		Implemented the ability to read/write arbitrarily 
+		large \BF\ and \Rat\ constants from files
+		(Version 1.4 only supported file I/O for \Int\ constants)
+        \item
+		Improved algorithm for computing degree bound (degreeBound(),
+               count(), clearFlag()), avoiding exponential worst case behavior
+        \item
+		Removed implementation dependent files:
+               \texttt{gmp-impl.h}, \texttt{longlong.h}, \texttt{gmp-params.h}.
+		Also removed obsolete files:
+               \texttt{ExprUtil.h,cpp}, \texttt{Filer.cpp},
+	       \texttt{CoreIOmanip.h}, \texttt{CoreException.h}.
+        \item
+		Updated Core Library Tutorial.  
+        \item
+		Bug fixes:
+		(a) Computing of uMSB and lMSB was inaccurate
+		(b) Root bound parameters for some constants
+			was wrong (e.g., for Expr(1.0)).
+		(c) BigInt::ceilLg(x) was wrong for $x<0$.
+		(d) Thanks to Martin Held for exposing a bug
+		in the installation script (script may compile
+		gmp library using a different compiler than the one
+		used to compile Core Library, with the result that 
+		linking may fail).  
+	\end{itemize}
+
+\section{Version 1.6, Jun 2003}
+The introduction of real algebraic numbers.
+CORE is now issued under the the Q PUBLIC LICENSE (QPL),
+concurrently with its being distributed with CGAL.
+Incorporated Polynomial and Sturm classes into Core Library.
+
+    \begin{itemize}
+	\item Two new classes have been incorporated into CORE: 
+		Polynomial class and Sturm class.  Both are templated classes.
+		The coefficients of a polynomial
+		have a parameterized number type NT.  Currently NT
+		is restricted to \Int, \int, \lng.
+	\item An associated Sturm class has methods for root isolation
+		and Newton iteration.
+        \item Real algebraic numbers is now available as leaves
+		in \expr.  These can be specified as a polynomial
+		together with a root root indicator.
+	   	The special case of m-th root of n is implemented as 
+		radical(n,m).
+	\item Further improvement in k-ary BFMSS Root Bound (we now extract
+		powers of 5 (as well as powers of 2).  Thus decimal inputs
+		can be exploited.
+	\item By setting a global \texttt{rationalReduceFlag = true},
+		you can automatically
+		reduce rational \expr\ to a single node.  This allows some
+		previously intractable computations to succeed (see pentagon
+		example under progs directory).  By default, this flag is false.
+	\item New wrapper classes for \Int\ and \Rat\ to
+		directly exploit \gmp.  Previously it was based on
+		\lidia's wrapper classes (even though the
+		underlying number classes were already based on \gmp).
+		This gives about 11.8\% speedup.
+	\item Much faster algorithm for refining isolating interval. 
+		This comes from two sources. First,
+		instead of only bisection, we exploit Newton iteration 
+		when we can. Second, we
+		Replace \expr\ intervals by \BF\ intervals.
+	\item Introduced the \texttt{defInitialProgressivePrec} variable,
+		to control the initial
+		precision for progressive evaluation:
+		originally, this initial value was 1.
+		Here are the speed from "make time" for variouse values of 
+		defInitialProgressivePrec (based on Core v.1.6 Test Programs):
+\begin{verbatim}
+		defInitialProgressivePrec 	User time (seconds)
+				1		1:11.5
+				32 		1:09.4
+				64 		1:08.7
+				128		1:08.3
+				256		1:09.3
+\end{verbatim}
+
+	\item Implemented \texttt{toString} and \texttt{fromString} methods for 
+		\Int, \Rat, \BF\, \real, \expr.
+	\item In \BF, we now have methods for \texttt{makeExact()},
+		\texttt{makeInexact()}
+		and \texttt{div2()} for error-free division by 2.
+		These are important for controlling I/O precision
+		and Newton iteration.
+	\item Implemented automatic checks for invalid \expr\ at 
+		construction time.  E.g.,
+		for division, check for divide-by-zero, and for sqrt,
+		check for negative argument.
+	\item Various bug fixes: in particular, fixed a
+		bug arising from negative root bit-bound 
+		(this arises from the new k-ary root bounds, since
+		previous root bound parameters could never generate
+		negative root bit-bounds)
+	\item Miscellanenous changes:
+	\begin{itemize}
+		\item Core Numerical API Level is now called
+		\texttt{CORE\_LEVEL}.
+		\item Restructuring of include files:
+		we now prefer to use \texttt{\#include "CORE/xxx.h"}
+		  instead of \texttt{\#include "xxx.h"} to avoid name
+		  conflict.   For backwards compatibility, you can
+		  still use \texttt{\#include "CORE.h"}.
+		\item Reorganization of header files (e.g.,
+		\texttt{Expr.h} is split into \texttt{Expr.h}
+		and \texttt{ExprRep.h}). 
+		\item New functions: \texttt{Expr::operator \%(x,y)},
+		\texttt{BigFloat::pow(x,n)}
+		\item New functions: \texttt{Expr::doubleInterval()}
+		returns an interval containing exact value
+		\item New \texttt{escapePrecisionWarning} boolean flag
+		(useful for testing escape precision)
+		\item New \texttt{gcd(long, long)} function
+	\end{itemize}
+    \end{itemize}
+
+\section{Version 1.7, Aug 2004}
+
+Introduced algebraic curves and bivariate polynomials.
+An interactive version of Core Library called "InCore" is available.
+Beginning some graphic capability for display of curves.  Restructuring
+of number classes (Expr, BigFloat, etc) to have common reference counting
+and rep facilities.
+
+   \begin{itemize}
+   \item Introduced plane algebraic curves and bi-variate polynomials 
+         The main capability is to plot curves and do basic
+         intersection tests.  See \examplesdir\texttt{/curves}.
+   \item Introduced "InCore", an interactive version of Core Library 
+   	based on Python (this has to be downloaded separately)
+   \item Enhancement of the univariate polynomial and real algebraic
+        number facilities. New methods such as
+	polynomial GCD, resultant, square free part, primitive part, etc.
+	\begin{itemize}
+	\item Polynomials now accept string inputs. 
+	 E.g., \texttt{Polynomial<BigInt> p = "x\^{}3 - 2x\^{}2 + 17x - 4";}
+        \item \texttt{Polynomial<NT>} can now work with all choices of
+                \texttt{NT = BigInt, int, BigRat, Expr, BigFloat}
+          But not all functionality are fully available for
+          \texttt{NT=BigFloat} and \texttt{NT=Expr} (e.g., rootbounds).
+        \item \texttt{Sturm<NT>} can now work with \texttt{NT=BigFloat}
+	\item To support the above, various new methods are added to the
+	  \Int, \Rat, \BF\ and \real\ classes (isDivisible, gcd, etc).
+	\end{itemize}
+   \item Compatibility with gmp 4.1.4, and gcc 3.3
+
+   \item Introduced a common Reference Counting facility for all
+         Core number types, encoded in the two templated classes:
+                \texttt{RCRepImpl<class N>}
+      to create Reps of the class N.  The basic functions provided by
+      this class is reference counting, and gives us the "Reps" of
+      each number type (e.g., \texttt{BigIntRep}
+      is derived from \texttt{RCRepImpl}).  
+      The other class is
+                \texttt{RCImpl<class T>}
+      which is the actual number type (e.g., BigInt is derived
+      from \texttt{RCImpl<BigIntRep}>).  As a result former Rep Files
+      such as RealRep.h can be removed, and the code size is reduced.
+      Also, \Int\ and \Rat\ now have reference counting in
+      their Rep classes (none before).
+   \item Speedup from reorganization of Core Library number classes.
+      We wrote wrappers around gmp's C function library.
+      We also tested the possibility of using gmp's C++ classes (since
+      gmp 4.1) which are template based.  CORE's interface are not fully
+      compatible with gmp since since we have exact algebraic representation
+      and precision bounds.
+      We compared three versions of Core Library:
+           \\
+           (A) -- old code: version 1.6
+	   \\
+           (B) -- new code: some optimization
+	   \\
+           (C) -- new code: optimzation + using gmp C++ class
+      \\Here are the running times on two machines:
+      \begin{verbatim}
+      Test              Pentium III (1G Memory)        Jinai (Solaris)
+      =======================================================
+      > A               64.12s                         1m:07s
+      > B               56.52s                         52.6s
+      > C               50.71s                         50.4s
+      > Speedup         20%                            25%
+      \end{verbatim}
+    
+      Although the use of gmp C++ classes (which use expression template
+      to eliminate temporary variables) is faster, it is
+      incompatiable with visual C++ (not sure about Sun CC).
+      So we added as an option for compiling the Core Library:
+      to turn on gmp C++ classes, uncomment macro CORE\_USE\_GMPXX
+      in CoreImpl.h and recompile Core Library; there is no need to compile
+      GMP C++ library since all necessory code are in Core Library already.
+
+   \item Simple openGL display for curves: see
+   	\extdir\texttt{/graphics/}
+
+   \item Various improvements by replacing Expr with BigFloats
+   	whenever possible: in Polynomial and Sturm operations,
+	in progs/pi/brent.cpp, etc.
+
+   \item The compiled Core Library is changed from
+   	"libcore" to "libcore++", and "libcorex" to "libcorex++".  
+	This mitigates any possible name conflicts as a Debian package 
+	for Core Library (see below).
+
+   \item Rewrote the memory pool class to avoid strict aliasing
+   	problems under gcc's -O2 optimization.  Now, we can compile
+	Core Library under -O2 optimization.
+
+   \item Bug fixes
+        \begin{itemize}
+          \item \texttt{rootOf(P,i)} now works properly when P have
+	     multiple roots
+            (reason: we assumed the endpoints of isolating intervals
+            have distinct signs)
+	  \item Fixed bugs in Newton and Sturm methods
+          \item \texttt{Expr::doubleValue()} is now correctly implemented.
+	    E.g., suppose you compute
+	        double s = sqrt(n);
+		double ss = sqrt(Expr(n)).doubleValue();
+            Then we guarantee that |s-ss| has relative error at
+	    most \texttt{4*CORE\_EPS = 4.44089e-16}
+	    (\texttt{CORE\_EPS} is machine epsilon). 
+	    This factor of 4 is essentially the best possible (see \\
+	    \examplesdir\texttt{/testIO/testSqrt.cpp}).
+	  \item fixed \texttt{Expr::degreeBound()}.  Previously it always 
+	    returned 1 at
+	    leaves.  But with algebraic numbers, it must return
+	    \texttt{d\_e()}.
+	    This has dramatic improvement in speed. Ron Wein's program for
+	    intersecting two ellipses used to take overnight, but now take
+	    0.4 sec.
+	  \item Fixed an output bug that has been around since Core 1.4.
+	    BigFloat can print an output whose exponent is off by 1.
+	        E.g., \texttt{sqrt(100) = 9.999e0}
+		but \texttt{BigFloatRep::round(...)},
+		an internal function, returns the string "1.0000e0"
+		instead of "1.0000e1".  Thanks to Blazi for noticing this.
+        \end{itemize}
+   \item Miscellaneous:
+        \begin{itemize}
+	  \item Thanks to Joachim Reichel for creating a Debian package
+	    for Core Library.
+          \item Previously, the library version numbers have two numbers
+            (e.g., "1" and "6" in Version 1.6).  Between official releases,
+	    we call it Version 1.6x.  Thus "Version 1.6x" refers to any
+            number of unofficial releases between 1.6 and 1.7.
+            We now have a third number.  E.g., this official release
+            is Wersion 1.7.0.
+          \item \texttt{CORE::core\_error()} is enhanced to write its results
+	    into a file \texttt{Core\_Diagnostics} but also writes errors to
+	    std::cerr (as before).  
+	  \item We introduce new versions of the \texttt{BigFloat::makeExact()}
+	    , namely, \texttt{makeCeilExact()} and \texttt{makeFloorExact()}.
+          \item Upgraded Core Library to be compatible with the latest gmp
+            4.1.3 (released 4/28/2004).
+	  \item Use the program \texttt{astyle} to beautify all our code,
+	    so the files are more consistent and readable.  Tab are 
+	    converted to spaces, using k\&r style, etc:
+	    	\begin{equation}
+	               \texttt{./astyle --style=kr -s2 filename}
+	    	\end{equation}
+	  \item More use of BigFloats to replace Expr, when possible.  E.g.
+	    CauchyLowerBound() and CauchyUpperBound() rewritten using
+	    BigFloat instead of Expr (30\% improvement here).
+	  \item In CORE\_PATH, you can type "make options" 
+	    to see all your currently selected CORE ENVIRONMENT VARIABLES.
+	    If you type "make alloptions", this will also show
+	    all possible alternatives that you could have chosen.
+	  \item Simple timing facility (see src/Timer.h)
+        \end{itemize}
+   \item Acknowledgements:  Thanks for feedback and bug reports from
+            Janos Blazi,  Ovidiu Daescu, Arno Eigenwillig, Andreas Fabri,
+	    Efi Fogel, Michael Hemmer, Athanasios Kakargias, Norbert Mueller,
+	    Joachim Reichel, Daniel Russell, Raphael Straub, Ron Wein.
+
+  \end{itemize} 
+ 
+ \bibliographystyle{abbrv}
+ \bibliography{tutorial}
+
+\end{document}

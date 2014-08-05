@@ -1,0 +1,2008 @@
+% file: tutorial.tex
+% 	CORE Library
+% 	$Id: tutorial.tex,v 1.1.1.1 2007/04/09 23:35:54 exact Exp $ 
+% Revision History:
+%	-- Nov 12, 2004 by Chee, Zilin, Vikram and Pion for Version 1.7
+%	-- Jun 20, 2003 by Chee, Zilin and Vikram for CORE Version 1.6
+%	-- Jul 29, 2002 by Sylvain, Chee, Zilin for CORE Version 1.5
+%	-- Sep  1, 2001 by Chee for CORE Version 1.4x
+%	-- Aug 15, 2000 by Chee and Chen for CORE Version 1.3
+%	-- Sep  9, 1999 by Chee and Chen for CORE Version 1.2
+% 	-- Jan  9, 1999 by Chen for a new tutorial for CORE lib
+% 	-- Jun 15, 1998 by Chee for CORE proposal
+
+
+\documentclass[12pt]{article}
+
+
+% \input mssymb
+\usepackage{amssymb}
+\input{macro}
+
+% \textwidth 15.4cm 
+% \textheight 23.4cm
+% \textheight 23cm
+% \topmargin -14mm       
+% \evensidemargin 3mm 
+% \oddsidemargin 3mm
+
+\draftdimensions
+
+\title{\corelib\  Tutorial}
+
+\author{Chen Li, Chee Yap, Sylvain Pion, Zilin Du and Vikram Sharma\\
+Department of Computer Science\\
+Courant Institute of Mathematical Sciences\\
+New York University\\
+%251 Mercer Street\\
+New York, NY 10012, USA
+}
+
+\date{Nov 12, 2004\footnotemark[0]{\dag}
+\footnotetext[0]{\dag
+Revised: Jan 18, 1999;
+Sep 9, 1999;
+Aug 15, 2000;
+Sep 1, 2001;
+Jul 29, 2002;
+Jun 20, 2003;
+Nov 12, 2004.
+This work has been funded by NSF Grants \#CCR-9402464,
+\#CCF-0430836, and NSF/ITR Grant \#CCR-0082056.
+}
+}
+
+\begin{document}
+
+\maketitle
+
+\abstract{
+The \corelib\ is a collection of \cpp\ classes to support
+numerical computations that have a variety of
+precision requirements.  
+In particular, it supports the Exact Geometric
+Computation (EGC) approach to robust algorithms.
+The implementation embodies our precision-driven
+approach to EGC.  The library is designed to be
+extremely easy to use.  Any \cpp\ programmer
+can immediately transform a ``typical''
+geometric application program into fully robust code,
+without needing to transform the underlying program logic.
+This tutorial gives an overview of the \corelib,
+and basic instructions for using it.
+}
+
+%\newpage
+
+%\section*{Table of Contents}
+
+\vspace{.2in}
+\begin{center}
+\begin{minipage}{4in}
+% \section*{Table of Contents}
+  \begin{tabular}{c l c }
+    {\bf Section} & {\bf Contents} & {\bf Page} \\
+    1	& Introduction		& 2 \\
+    2	& Getting Started	& 3 \\
+    3	& Expressions		& 8 \\
+    4	& Numerical Precision and Input-Output	& 9 \\
+    5	& Polynomials and Algebraic Numbers & 15 \\
+    6	& Converting Existing \candcpp\ Programs	& 16 \\
+    7   & Using \core\ with \cgal\ & 19 \\
+    8   & Efficiency Issues 	& 19 \\
+    9	& \corelib\ Extensions	& 23 \\
+%   X   & Implementation Issues and Features & ?? \\
+    10	& Miscellany		& 23 \\
+    11	& Bugs and Future Work	& 24 \\
+    Appendix A & \core\ Classes Reference & 25 \\
+    Appendix B & Sample Program		  & 49 \\
+    Appendix C & Brief History		  & 50 \\
+    	& References			  & 51 \\
+   \end{tabular}
+\end{minipage}
+\end{center}
+
+\cleardoublepage
+
+\section{Introduction}
+
+In programs such as found in
+engineering and scientific applications, one can often
+identify numerical variables that require more
+precision than is available under machine arithmetic\footnote{
+In current computers, this may be identified with
+the IEEE 754 Standard.
+}.
+But one is also likely to find
+other variables that need no more than machine precision.
+E.g., integer variables used as array indices or for loop control.
+The \corelib\ is a collection of \cpp\ classes
+to facilitate numerical computation
+that desire access to a variety of such precision requirements.
+Indeed, the library even supports variables with irrational
+values (e.g., $\sqrt{2}$) and allows exact comparisons with them.
+
+Numerical non-robustness of programs is a widespread phenomenon,
+and is clearly related to precision issues.
+Two recent surveys are \cite{schirra:robustness-survey:98,yap:crc}.
+Non-robustness is particularly insidious in geometric computation.
+What distinguishes ``geometric computation'' from
+general ``numerical computation'' is the appearance
+of discrete or combinatorial structures, and the
+need to maintain consistency requirements between
+the numerical values and these structures \cite{yap:crc}.
+Our library was originally designed to
+support the {\em Exact Geometric Computation} (EGC)
+approach to robust geometric computation
+\cite{yap:exact,yap-dube:paradigm}.  The EGC approach
+is one of the many routes that researchers have taken
+towards addressing non-robustness in geometric computation.
+Recent research in the computational geometry
+community has shown the effectiveness
+of EGC in specific algorithms such as
+convex hulls, Delaunay triangulation, Voronoi diagram, mesh generation, etc
+\cite{fortune-vanwyk:static:96,fortune-vanwyk:exact,kln:delaunay:91,bkmnsu:exact:95,burnikel:exact:thesis,shewchuk:adaptive:96}.
+But programmers cannot easily produce such robust programs without
+considerable effort.
+A basic goal of our project is to create
+a tool that makes EGC techniques accessible to \dt{all} programmers.
+Through the \corelib, any \candcpp\ programmer can now
+create robust geometric programs
+{\em without} any special knowledge of EGC or other robustness techniques.
+The \corelib, because of its unique
+numerical capabilities, has other applications beyond EGC.
+An example is in automatic theorem proving in geometry
+\cite{tyl:zero-test:00}.
+
+A cornerstone of our approach is 
+to define a simple and yet natural numerical accuracy
+API (Application Program Interface).
+The \corelib\ defines four {\em accuracy levels}
+to meet a user's needs: 
+
+\begin{description}
+\item[Machine Accuracy (Level 1)]
+	This may be identified with the IEEE 
+	Floating-Point Standard 754.
+\item[Arbitrary Accuracy (Level 2)]
+	Users can specify any desired 
+	accuracy in term of the number of bits used in the computation. 
+	E.g., ``200 bits'' means that the numerical operations will not 
+	cause an overflow or underflow until 200 bits are exceeded.
+\item[Guaranteed Accuracy (Level 3)]
+	Users can specify the absolute 
+	or relative precision that is guaranteed to be correct in the 
+	final results. E.g., ``200 relative bits'' means that the first 
+	200 significant bits of a computed quantity are correct.
+\item[Mixed Accuracy (Level 4)]
+	Users can freely intermix the various precisions at the level
+	of individual variables.  This level is not fully defined,
+	and only a primitive form is currently implemented.
+\end{description}
+
+Level 3 is the most interesting, and constitute the critical
+capability of EGC.  Level 2 is essentially the
+capability found in big number package, and in
+computer algebra systems such as \texttt{Maple} or \texttt{Mathematica}.
+There is a fundamental gap between Levels 2 and 3 that may not
+be apparent to the casual user.
+
+One design principle in our library is that a
+\core\ program should be able to compile and run at
+any of the four accuracy levels.  We then say that the program
+can ``simultaneously'' access the different levels.
+The current library development has focused mostly\footnote{
+Level 1 effort simply amounts to ensuring
+that a Level 3 program can
+run at Level 1 as well.  A ``Level 3 program'' is one
+that explicitly use classes or functions
+that are specific to Level 3.
+}
+on Levels 1 and 3.  As a result of the simultaneous access
+design, \core\ programs can be debugged and run at various levels
+as convenient.  E.g., to test the general program logic, we
+debug at Level 1, but to check the numerical computation,
+we debug at Level 3, and finally, we may choose to run this
+program at Level 2 for a speed/accuracy trade-off.
+
+The mechanism for delivering these
+accuracy levels to a program aims to be as transparent
+as possible.  In the simplest situation,
+the user begins with a ``standard'' \cpp\ program,
+i.e., a \cpp\ program that does not refer to any 
+\core-specific functions or classes.  We call this
+a \dt{Level 1 program}.  Then the user
+can invoke \corelib's numerical capabilities just
+by inserting the line {\tt \#include "CORE/CORE.h"} into the
+program, and compiling in the normal way.
+In general, a key design objective is to reduce the effort
+for the general programmer to write new robust programs,
+or to convert existing non-robust programs into robust ones.
+
+It should be evident that if an ``ordinary'' \cpp\ program
+is to access an accuracy level greater than 1,
+its basic number types must be re-interpreted and overloading
+of arithmetic operators must be used.  In Level 2, the
+primitive types \double\ and \lng\ are re-interpreted to refer
+to the classes \BF\ and \Int, respectively.  Current
+implementation encloses these values inside a number type \real.
+In Level 3, both \double\ and \lng\ refer to the class \expr.
+Think of an instance of the
+\expr\ class as a real number which supports exact (error-less)
+operations with $+,-,\times, \div$ and $\sqrt{}$,
+and also exact comparisons.
+Each instance of \expr\ maintains an \dt{approximate value}
+as well as a \dt{precision}.   The precision is an
+upper bound on the error in the approximate value.
+Users can freely modify this precision, and
+the approximate value will automatically adjust itself.
+When we output an \expr\ instance, the current approximate
+value is printed.
+
+Our work is built upon the \rexpr\ Package
+of Yap, Dub\'e and Ouchi \cite{yap-dube:paradigm}.
+The \rexpr\ Package was the
+first system to achieve Level 3 accuracy
+in a general class of non-rational expressions.
+The most visible change in the transition to \corelib\
+is our new emphasis on ease-of-use.
+The \core\ accuracy API was first proposed by
+Yap \cite{yap:brown-cgc:98}.  An initial implementation
+was described by Karamcheti et al \cite{klpy:core:98}.
+At about the same time, Burnikel et al \cite{bfms:easy:99}
+introduced the {\tt leda\_real} Library that is
+very similar to Level 3 of our library.
+
+The library has been extensively tested
+on the Sun UltraSPARC, Intel/Linux and Windows platforms.
+The main compiler for development is \gnu's \gpp.
+% version 1.2 was tested using Sun's WorkShop Compiler {\tt CC}
+% and SGI's MIPSpro Compiler {\tt CC}.
+The base distribution for Version \versionNo\ is less than 800 KB, 
+including source, extensions and examples.
+The full distribution, which includes documentation and \gmp,
+is less than 4MB.
+It can be freely downloaded from our project homepage
+	\begin{center}
+	\verb+http://cs.nyu.edu/exact/core.+
+	\end{center}
+This tutorial has been updated for \corelib, Version \versionNo,
+released on \releaseDate.
+
+\section{Getting Started}
+
+\paragraph{Installing the \corelib.}
+% Software you need are \texttt{gunzip}, \texttt{tar},
+% \texttt{make} and a \cpp\ compiler.
+The \core\ distribution file is called
+\coredistfile, where {\tt X.Y.Z} denotes the library version.
+% coredistfile = core_vX.Y.Z.tgz.  
+Thus, for the initial version \versionNo, we have {\tt X.Y.Z = \versionNo.0}.
+Assume that the distribution file has been downloaded into
+some directory \installpath.  In Unix, you can extract
+the files as follows:
+\\
+\hspace*{1in}  {\tt \% cd} \installpath
+\\
+\hspace*{1in}  {\tt \% gzip -cd} \coredistfile {\tt\ | tar xvf -}
+\\
+where {\tt\%} is the Unix prompt.
+This creates the directory {\tt core\_vX.Y} containing
+all the directories and files.  Let \corepath\
+% \corepath = $(CORE\_PATH)
+be the full path name of this newly created directory:
+thus \corepath\ expands to \installpath{\tt /core\_vX.Y}.
+The \corelib\ directory structure is as follows:
+
+\begin{tabbing}
+XX\=XXXXXXXXXXXXXXX\=XXXXXX\=XXXXXX \kill\\
+	\> \docdir: \> Documentation\\
+	\> \includedir: \> The header files\\
+	\> \srcdir: \> Source code for the \corelib\\
+	\> \libdir: \> The compiled libraries are found here\\
+	\> \extdir: \> Extensions for linear algebra and geometry, etc\\
+	\> \examplesdir: \> Demo programs using the \corelib \\ 
+% \examplesdir\ and \progsdir\ are same!
+	\> \tempdir: \> Temporary directory \\ 
+	\> \win: \> Director for Windows files \\ 
+	\> \gmplink: \> gmp installation directory (may be a link)\\ 
+\end{tabbing}
+\noindent
+The link \gmplink\ is not present after unpacking, but will be created
+in the first three steps of the installation below.
+The {\tt README} file in \corepath\ describes
+the easy steps to compile the library, which are as follows:
+\\
+\hspace*{1in} \verb+ % cd ${CORE_PATH} +
+\\
+\hspace*{1in} \verb+ % make first       // determine system configurations for gmp+
+\\
+\hspace*{1in} \verb+ % make second      // make gmp libraries+
+\\
+\hspace*{1in} \verb+ % make third       // install gmp +
+\\
+\hspace*{1in} \verb+ % make testgmp     // check if gmp is properly installed +
+\\
+\hspace*{1in} \verb+ % make fourth      // make core library, extensionns, demo programs +
+\\
+\hspace*{1in} \verb+ % make fifth       // run sample programs +
+\\
+These steps assume that you downloaded the
+full distribution (with \gmp) works in a unix-like environment,
+including cygwin.  Variant installations
+(e.g., for a base distribution, without \gmp)
+are described in the {\tt README} file.
+These five steps are equivalent to a simple ``make all''.
+The first make will determine the system
+configurations (platform, compilers, available files, etc).  
+This information is needed for building the \gmp\ library,
+which is the object of the second make.
+These first two makes are the most expensive of the
+installation, taking between 10--30 minutes depending on
+the speed of your machine.  But you
+can skip these steps in subsequent updates or
+recompilation of the Core Library.
+The third make will install the gmp library.
+Before the fourth make, we do a simple check
+to see if gmp has been properly installed (``make testgmp'').
+The fourth make is equivalent to three separate makes,
+corresponding to the following targets: {\tt corelib, corex, demo}.
+Making {\tt corelib} creates the core library,
+that is, it compiles the files in \srcdir\ resulting in the
+file {\tt libcore++.a} which is then placed in \libdir.
+Make {\tt corex} creates the Core Library extensions (\corex's),
+resulting in the files {\tt libcorex++\_level*.a} being
+placed in \libdir.  Note that we currently create
+levels 1, 2 and 3 of the \corex.  Make {\tt demo} 
+will compile all the sample programs in \examplesdir.
+The fifth make will test all the sample programs.
+The screen output of all the above makes are stored in
+corresponding files in \tempdir.
+An optional ``make sixth'' will run the fifth test with a single
+timing number.  
+
+\paragraph{Programming with the \corelib.}
+\label{sec-prog-core}
+It is simple to use the \corelib\ in your \candcpp\ programs. 
+There are many sample programs and Makefiles under \examplesdir.
+These could be easily modified to compile your own programs.
+A simple scenario is when you already have
+a working \cpp\ program which needs to be converted to
+a CORE program.  The following 2 steps may suffice:
+
+\begin{enumerate}
+\item Modifying your program:
+add one or two instructions as preamble to your program.
+First, use a define statement to set the \core\ accuracy level:
+	\begin{verbatim}
+   #define CORE_LEVEL <level_number> // this line can be omitted when
+                                     // using the default value 3.
+	\end{verbatim}
+Here {\tt <level\_number>} can be 1, 2, 3 or  4.
+Next, include the \corelib\ header file {\tt CORE.h}
+(found in \includedir)
+	\begin{verbatim}
+   #include "CORE/CORE.h"
+	\end{verbatim}
+To avoid potential name conflict, all header files are stored under
+\includedir/CORE\footnote{
+	Before \corelib\ 1.6, header files were in \includedir. 
+	For backward compatibility, you still can use
+	\texttt{\#include "CORE.h"}
+}
+This include line should appear {\em before} your code which
+utilizes Core Library arithmetic, 
+but {\em after} any needed the standard header files, e.g. \verb+<fstream>+.  
+Note that \texttt{CORE.h} already includes the following:
+\begin{verbatim}
+     <cstdlib>, <cstdio>, <cmath>, <cfloat>, <cassert>, <cctype>,
+     <climits>, <iostream>, <iomanip>, <sstream>, <string>.
+\end{verbatim}
+
+\item Quick start to compiling and running your own programs.
+When compiling, make sure that \includedir\ and \includegmpdir\ are among the
+include paths (specified by the {\tt -I} compiler flag)
+for compiling the source.
+When linking, you must specify the libraries from
+\core\ and \gmp\ and the standard math library {\tt m},
+using the {\tt -l} flag.  You also need to use the {\tt -L} flag
+to place \libdir\ and \gmplibdir\ among the library paths.
+E.g., to compile the program \texttt{foo.cpp}, type:
+\\ \hspace*{0.2in}
+ {\small\tt \% g++ -c -I\includedir\  -I\includegmpdir\ foo.cpp -o foo.o}
+\\ \hspace*{0.2in}
+ {\small\tt \% g++ -o foo -L\libdir\  -L\gmplibdir\ -lcore++ -lgmp -lm }
+\\ in this order.
+
+\end{enumerate}
+
+The easy way to use the Core Library is to take advantage 
+of the Core Library directory structure.  This can be seen
+in how we compile all the demo programs.
+First, create your own directory under \examplesdir\ and
+put your program \texttt{foo.cpp} there.  Then copy one of the
+Makefiles in \examplesdir.  E.g.,
+\examplesdir{\tt /generic/Makefile}.
+You can modify this make file to suit your needs.  To compile
+\texttt{foo.cpp}, just modify the Makefile by adding the
+following line as a new target:
+	\begin{verbatim}
+	foo: foo.o
+	\end{verbatim}
+To compile your program, you simple type ``make foo'' in this directory.
+% See the \texttt{README} file for instructions if you use 
+% dynamic libraries.  
+The examples in this tutorial are found
+in  \examplesdir\texttt{/tutorial/}. 
+
+\paragraph{Namespace CORE.}
+%Starting with CORE version 1.5, 
+The library uses its own namespace called {\tt CORE}.
+Therefore classes and functions of {\tt CORE}
+are accessible by explicitly
+prefixing them by {\tt CORE::}. E.g., {\tt CORE::Expr}.
+You can also use the global statement~:
+
+\begin{progb} {
+\> \tt using namespace CORE;
+} \end{progb}
+
+In fact, this is automatically added by the include file
+{\tt CORE.h} unless the compilation flag
+\\ {\tt CORE\_NO\_AUTOMATIC\_NAMESPACE} is defined.
+
+\paragraph{Basic Numerical Input-Output.}
+Input and output of literal numbers come in three basic formats:
+scientific format (as in {\tt 1234e-2}), positional format
+(as in {\tt 12.34}), or rational format (as in {\tt 1234/100}).
+Scientific and positional can be mixed (as in {\tt 1.234e-1})
+and will be collectively known as the ``approximate number format''.
+It is recognized by the presence of an ``e'' or a radical point.
+In contrast, the rational format is known as ``exact number format'',
+and is indicated by the presence of a ``/''.
+For I/O purposes, a plain integer $1234$ is regarded 
+as a special case of the rational format.  
+Input and output of exact numbers is
+pretty straightforward, but I/O of approximate numbers
+can be subtle.
+
+For output of approximate numbers, users can choose either
+scientific or positional format, by calling the methods
+{\tt setScientificFormat()} or
+{\tt setPositionalFormat()}, respectively.
+The output precision is manipulated 
+using the standard \cpp\ stream manipulator {\tt setprecision(int)}.
+The initial default is equivalent to
+	\begin{verbatim}
+   setprecision(6); setPositionalFormat();
+	\end{verbatim}
+Note that the term ``precision'' in \cpp\ streams is
+not consistent with our use of the term (see Section 4).
+In our terminology, precision are measured in ``bits'', while
+input or output representation are in ``decimal digits''. 
+In contrast, precision in \cpp\ streams
+refers to decimal digits.
+ 
+\begin{center}
+\begin{tabular}{c}
+\begin{progb}{
+\>\tt \expr\ e1 = 12.34;          // constructor from C++ literals
+\\
+\>\tt \expr\ e = "1234.567890";  // constructor from string
+\\ 
+\>\>\>\tt // The precision for reading inputs is controlled by \definput
+\\
+\>\>\>\tt // This value is initialized to be 16 (digits).
+\\
+\>\tt cout << e << endl;
+\\
+\>\>\>\tt // prints 1234.57 as the output precision defaults to 6.
+\\
+\>\tt cout << setprecision(10) << e << endl; // prints 1234.567890
+\\
+\>\tt cout << setprecision(11) << e << endl; // prints 1234.5678900
+\\
+\>\tt setScientificFormat();
+\\
+\>\tt cout << setprecision(6) << e << endl;  // prints 1.23457e+4 
+}\end{progb}
+\end{tabular}
+Program 1
+\end{center}
+
+Program 1 uses \expr\ for illustrating the main issues
+with input and output of numerical values.
+But all CORE number classes will accept string inputs as well.
+Of course, in Level 3, \expr\ will be our main number type.
+
+For input of approximate numbers, two issues arise.
+As seen in Program 1,
+expression constructors accept two kinds of literal number inputs:
+either standard \cpp\ number literals (e.g., {\tt 12.34}, without any quotes)
+or strings (e.g., {\tt "1234.567890"}).
+You should understand that the former is inherently inexact:
+E.g., {\tt 12.34} has no exact machine double representation,
+and you are relying on the compiler to convert this into machine precision.
+Integers numbers with too many digits (more than $16$ digits)
+cannot be represented by \cpp\ literals.
+So users should use string inputs to ensure full
+control over input precision, to be described next. 
+
+Yet another issue is the base of the underlying
+natural numbers, in any of the three formats.   
+Usually, we assume base $10$ (decimal representation).
+However, for file I/O (see below) of large numbers,
+it is important to allow non-decimal representations.
+
+I/O streams understand expressions (\expr).  The output precision in both
+scientific and positional formats is equal 
+to the number of digits which is printed, provided
+there are that many correct digits to be printed.
+This digit count does not include the decimal point, the ``\texttt{e}''
+indicator or the exponent value in scientific format.
+But the single $0$ before a decimal point is counted.
+
+In two situations, we may print less than the maximum possible:
+(a) when the approximate value of the expression does not have
+that many digits of precision, and
+(b) when the exact output does not need that many digits.
+In any case, all the output digits are correct except that
+the last digit may be off by $\pm 1$.  Note that 
+19.999 or 20.001 are considered correct outputs for the value 20,
+according to our convention.  But 19.998 or 20.002 would not qualify.
+Of course, the approximate value of the expression can be
+improved to as many significant digits as we want -- we simply
+have to force a re-evaluation to the desired precision before output.
+
+Three simple facts come into play
+when reading an approximate number format into internal representation:
+(1) We normally prefer to use floating point in our internal
+representation, for efficiency.
+(2) Not all approximate number formats can be exactly represented by
+a floating point representation when there is a change of base.
+(3) Approximate number format can always be represented exactly
+by a big rational.
+
+We use the value of the global variable \definput\ to
+determine the precision for reading literal input numbers.
+This variable can be set by
+calling the function\\
+\verb+setDefaultInputDigits(+\extlong\verb+)+.
+Here, the class \extlong\ is basically a wrapper around the machine
+\lng\ type which supports special values such as $+\infty$, denoted
+by \coreInfty.  If the value of \definput\ is $+\infty$, then the
+literal number is internally represented without error,
+as a rational number if necessary.  If \definput\ is a finite integer $m$,
+then we convert the input string to a \BF\ whose
+value has absolute error at most $10^{-m}$, which in base $10$
+means the mantissa has $m$ digits.  The initial default value of
+\definput\ is $16$.
+
+\paragraph{A Simple Example.}
+\label{sec-example-sqrt}
+Consider a simple program to compare the following
+two expressions, numerically:
+	$$\sqrt{x}+\sqrt{y} : \sqrt{x+y+2\sqrt{xy}}.$$
+Of course, these expressions are algebraically identical, and
+hence the comparison should result in equality regardless
+of the values of $x$ and $y$.  Running the following program
+in level 1 will yield incorrect results, while level 3 is always correct.
+
+\begin{center}
+\begin{tabular}{c}
+\begin{progb}{
+\> \tt \#ifndef CORE\_LEVEL\\
+\> \tt \#   define CORE\_LEVEL 3\\
+\> \tt \#endif\\
+
+\> \tt \#include "CORE/CORE.h"  // this must come after the standard headers\\
+
+\> \tt int main() \{\\
+\>\>  \tt setDefaultInputDigits(CORE\_INFTY);\\
+\>\>  \tt double x = "12345/6789"; \ \ \ \ \  \  // rational format\\
+\>\>  \tt double y = "1234567890.0987654321"; \ \ \ \ \ //  approximate format\\
+\\
+\>\>  \tt double e = sqrt(x) + sqrt(y);\\
+\>\>  \tt double f = sqrt(x + y + 2 * sqrt(x*y));\\
+\\
+\>\>  \tt std::cout << "e == f ? " << ((e == f) ? \\
+\>\>\>\tt 	  "yes (CORRECT!)" :\\
+\>\>\>\tt 	  "no (ERROR!)"  ) << std::endl;\\
+\> \}
+}\end{progb}
+\end{tabular}
+Program 2
+\end{center}
+
+\ignore{
+In Karamcheti et al \cite{klpy:core:98}, a
+simple experiment of this kind was described.
+A straightforward program which intersects a pair of lines and
+}
+
+\paragraph{Terminology.}
+We use the capitalized ``CORE''
+as a shorthand for ``Core Library'' (e.g., a CORE program).
+Note that ``Core'' is not an abbreviation; we chose this name 
+to suggest its role as the ``numerical core''
+for robust geometric computations.
+%It also reminds us that ``cores'' are usually small, not bloated.  
+
+\section{Expressions}
+
+The most interesting part of the \corelib\ is its
+notion of expressions, embodied in the class \expr.
+This is built on top of the class
+\real, which provides a uniform
+interface to the following subtypes of real numbers:
+\\
+\hspace*{1in} \int, \lng, \float, \double, \Int, \Rat, \BF.  
+\\
+Instances of the class \expr\ can be thought of as
+algebraic expressions built up from instances of \real\
+and also real algebraic numbers, via the operators
+$ +, -, \times, \div$ and $\sqrt{\phantom{\cdot}}$.
+Among the subtypes of \real, the
+class \BF, has a unique and key role in our system,
+as the provider of approximate values.
+It has an additional property not found
+in the other \real\ subtypes, namely, each \BF\ keeps
+track of an error bound, as explained next.
+
+The simplest use of our library is to avoid 
+explicit references to these classes (\expr, \real, \BF).
+Instead use standard \cpp\ number types (\int,\lng,\float,\double)
+and run the program in level 3.
+Nevertheless, advanced users may find it useful to
+directly program with our number types.
+Appendix A serves as a reference for these classes.
+
+\paragraph{Level 2 and Level 3 numbers.}
+There are two inter-related concepts in
+the \corelib: {\em precision} and {\em error}.
+One may view them as two sides of the same coin --
+a half-empty cup versus a half-full cup.
+Within our library, they are used in a technical
+sense with very different meanings.
+Let $f$ be an instance of the class \BF,
+and $e$ be an instance of the class \expr.
+We call $f$ a ``Level 2 number'' and $e$ a ``Level 3 number''.  
+Basically, we can compute with Level 2 numbers\footnote{
+%
+Level 2 numbers ought to refer to any
+instance of the class \real, if only they all
+track an error bound as in the case of the \BF\ subtype.
+Future implementations may have this property.
+%
+} to any desired error bound.  But unlike Level 3 numbers,
+Level 2 numbers cannot guarantee error-less results.
+The instance $f$ has a \dt{nominal value} $\val_f$ (a real number)
+as well as an \dt{error bound} $\err_f$.
+One should interpret $\err_f$ as an upper bound on the difference
+between $\val_f$ and some ``actual value''.  The instance $f$ does not
+know the ``actual value'', so one should just view $f$ as the
+interval $\val_f \pm \err_f$.  But a
+user of Level 2 numbers may be able to keep track of this ``actual value''
+and thus use the interval properly.  Indeed, Level 3 numbers
+uses Level 2 numbers in this way.
+
+The idea of Level 3 numbers is novel, and
+was first introduced in our \rexpr\ package \cite{yap-dube:paradigm}.
+The expression $e$ also has a \dt{value}
+$\val_e$ which is exact\footnote{
+And real, for that matter.
+}.  Unfortunately, the value $\val_e$ is in the mathematical realm ($\RR$)
+and not directly accessible.
+Hence we associate with $e$ two other quantities:
+a \dt{precision bound} $\preci_e$ and an \dt{approximation} $\appr_e$.
+The library guarantees that the approximation error $|\appr_e - \val_e|$
+is within the bound $\preci_e$.
+The nature of $\preci_e$ will be explained in the next section.
+What is important is that $\preci_e$ can be freely 
+set by the user, but the approximation $\appr_e$
+is automatically computed by the system.
+In particular, if we increase the precision
+$\preci_e$, then the approximation $\appr_e$ will be
+automatically updated if necessary.
+
+In contrast to $\preci_e$, the error bound $\err_f$
+should not be freely changed by the user.  This is because
+the error is determined by the way that $f$ was derived, and must
+satisfy certain constraints (basically it is the constraints
+of interval arithmetic).
+For instance, if $f=f_1+f_2$ then the error bound in $f$ is
+essentially\footnote{
+In operations such as division or square roots, exact results
+may not be possible even if the operands
+have no error.  In this case, we rely on some global parameter to
+bound the error in the result.
+}
+determined by the error bounds in $f_1$ and $f_2$.
+Thus, we say that error bounds are
+% {\em \'a posteriori values}
+{\em a posteriori values}
+while precision bounds are
+% {\em \'a priori values.}
+{\em a priori values.}
+
+\paragraph{Error-less Comparisons.}
+While we can generate arbitrarily accurate approximations to
+a Level 3 number, 
+this does not in itself allow us to do exact comparisons.
+When we compare two numbers that happen to be equal,
+generating increasingly accurate approximations can
+only increase our confidence that they are equal, but
+never tell us that they are really equal.
+Thus, there is a fundamental gap between Level 2 and Level 3 numbers.
+To be able to tell when two Level 3 numbers are equal,
+we need some elementary theory
+of algebraic root bounds \cite{yap:algebra-bk}.
+This is the basis of the Exact Geometric Computation (EGC) approach
+to non-robustness. 
+
+\section{Numerical Precision and Input-Output}
+
+Numerical input and output may be subtle,
+but they should never be ambiguous in our system.
+A user should know how input numbers are read,
+but also know how to interpret the output of numbers.
+
+For instance, confusion may arise from the fact that
+a value may be {\em exactly} represented internally,
+even though its printout is generally an approximation.
+Thus, the exact representation of $\sqrt{2}$
+is available internally in some form,
+but no printout of its approximate numerical value can tell you
+that it is really $\sqrt{2}$.  For this, you need to
+do a comparison test.
+
+NOTE: Precision is always given in base $10$ or base $2$.  
+Generally, we use base $2$ for internal precision, and use base $10$ for
+I/O precision.  \core\ has various global variables
+such as \defabs\ and \definput\ that controls precision in one
+way or other.   Our naming convention for such variables tells you
+which base is used:
+precision variables in base $10$ have the substring \texttt{Digit},
+while precision variables in base $2$ have the substring \texttt{Prec}.
+
+\paragraph{The Class of Extended Longs.}
+For programming, we introduce
+an utility class called \extlong\ (extended long)
+which is useful for expressing various bounds.
+In our system, they are used not only for specifying
+precision bounds, but also root bounds as well.
+Informally, \extlong\ can be viewed as a wrapper
+around machine \lng\ and which supports the
+special values of $+\infty, -\infty$ and NaN (``Not-a-Number'').
+These values are named \posInfty, \negInfty\ and \NaN, respectively.
+For convenience, \coreInfty\ is defined to be \posInfty.
+The four arithmetic operations on extended
+longs will never lead to exceptions such as overflows or divide-by-zero\footnote{
+%
+To delay the onset of overflows, it may be useful to extend
+\extlong\ to implement a form of level arithmetic.
+E.g., when a value overflows machine \lng, we can keep track
+of $\log_2$ of its magnitude, etc.
+%
+} or undefined values.  This is because such operations can
+be detected and given the above special values.
+A user may use and assign to \extlong's just as they would to machine \lng's.
+
+\paragraph{Relative and Absolute Precision.}
+Given a real number $ X $, and integers $a$ and $r$, we say that a
+real number $ \widetilde{X} $ is an
+{\em approximation} of $X$ to {\em (composite) precision}
+$ [r, a] $, denoted
+\[
+\widetilde{X} \simeq X \left[ r, a \right],
+\]
+provided either
+\[
+\left| \widetilde{X} - X \right| \le 2^{-r}\left| X \right|
+	\qquad \mbox{or} \qquad
+\left| \widetilde{X} - X \right| \le 2^{-a}.
+\]
+Intuitively, $r$ and $a$ bound the number of ``bits'' of relative and
+absolute error (respectively) when $\widetilde{X}$ is used to approximate $X$.
+Note that we use\footnote{
+Jerry Schwarz, ``A C++ library for infinite precision
+floating point'' (Proc.~USENIX C++ Conference, pp.271--281, 1988)
+uses the alternative ``and'' semantics.
+} the
+``or'' semantics (either the absolute ``or'' relative error has the
+indicated bound).  In the above notation, we view the combination
+``$X[r,a]$'' as the given data (although $X$ is really a black-box,
+not an explicit number representation)
+from which our system is able to generate an approximation $\widetilde{X}$.
+For any given data $X[r,a]$, we are either in the ``absolute regime''
+(if $2^{-a}\ge 2^{-r}|X|$) or in the ``relative regime''
+(if $2^{-a}\le 2^{-r}|X|$).
+
+To force a relative precision of $ r $, we can
+specify $a = \infty $.  Thus $ X[r, \infty]$ denotes any
+$\widetilde{X}$ which satisfies
+$\left| \widetilde{X} - X \right| \le 2^{-r}\left| X \right|$.
+Likewise, if $ \widetilde{X} \simeq X[\infty, a] $ then $ \widetilde{X} $ is
+an approximation of $ X $ to the absolute precision $a$,
+$|\widetilde{X} - X| \le 2^{-a}$.
+
+In implementation, $r$ and $a$ are \extlong\ values.
+We use two global variables to specify the global composite precision:
+	\begin{equation}\label{eq:defrel}
+	[\defrel,\defabs].
+	\end{equation}
+It has the default value $[60,\coreInfty]$.
+The user can change these values at run time by calling the functions:
+\begin{verbatim}
+     long setDefaultRelPrecision(extLong r);    // returns previous value
+     long setDefaultAbsPrecision(extLong a);    // returns previous value
+     void setDefaultPrecision(extLong r, extLong a);
+\end{verbatim}
+
+How does the default precision in \ref{eq:defrel} control your computation?
+Say you perform arithmetic operations such as \texttt{z = x/y;}
+The system will ensure that the computed value of
+\texttt{z} satisfies the relation \texttt{z}$\sim x/y[\defrel,\defabs]$.
+
+Sometimes, we want to control this precision for individual
+variables.  If {\tt e} is an \expr, the user can invoke 
+{\tt e.approx(rel, abs)} where {\tt rel, abs} are
+extended longs representing the desired composite precision.
+The returned value is a \real\ instance that satisfies this requested
+precision.
+If {\tt approx} is called without any arguments, it will
+use the global values $[\defrel,\defabs]$.
+
+In Section 2 (``Getting Started''),
+we gave the basics for numerical input and output.
+In particular, we have 3 formats:
+positional (e.g., {\tt 3.14159}),
+scientific (e.g., {\tt 314159 e-5}), or
+rational (e.g., {\tt 314159/100000}).
+These formats can be read as a \cpp\ literal or as a string.
+But there are important differences related to precision.
+
+\paragraph{Precision of Numerical Input.}
+Consider the following input of numerical values:
+
+   \begin{verbatim}
+       Expr e = 0.123;      // position format in machine literal
+       Expr f = "0.123";    // positional format in string
+       Expr g = 123e-3;     // scientific format in machine literal
+       Expr h = "123e-3";   // scientific format in string
+       Expr i = 12.3e-2;    // mixed format in machine literal
+       Expr j = "12.3e-2";  // mixed format in string
+   \end{verbatim}
+   
+The input for expressions \texttt{e}, \texttt{g} and \texttt{i}
+are \cpp\ number literals, and you may
+expect some error when converted into the internal representation.
+But the relative error of the internal representation is at most
+$2^{-53}$, assuming the IEEE standard.  
+In contrast, the values of the expressions
+\texttt{f},\texttt{h} and \texttt{j}
+are controlled by the global variable \definput.
+If \definput\ has the value \coreInfty\ then
+\texttt{f},\texttt{h} and \texttt{ j}
+will have the exact rational value $123/1000$.
+Otherwise, they will be
+represented by \BF\ numbers whose absolute error is
+at most $10^{- \tt m}$ where {\tt m = }\definput.
+
+Instead of using constructors, we can also read input
+numbers from streams.  E.g.,
+	\begin{verbatim}
+	Expr k;
+	cin >> k;
+	\end{verbatim}
+In this case, the input number literals are regarded as strings,
+and so the value of the variable \texttt{k} is controlled by \definput.
+
+\paragraph{Precision of Numerical Output.}
+Stream output of expressions is controlled by the
+precision variable stored in the stream {\tt cout}.
+Output will never print inaccurate digits,
+but the last printed digit may be off by $\pm 1$.  
+Thus, an output of $1.999$
+may be valid when the exact value is $2$, $1.998$, $1.9988$ or $1.9998$.
+But this output is invalid when the exact value is $1.99$ (since
+the last digit in $1.999$ is misleading) or $2.01$.
+Similarly,
+an output of $1.234$ is invalid when the exact value is $1.2$ or $1.23$.
+
+\paragraph{Output Number Formats.}
+We have two formats for approximate numbers:
+scientific and positional.  But
+even when positional format is specified, under certain
+circumstances, this may be automatically overridden,
+and the scientific format used.  
+For instance, if the output precision is $3$ and the number
+is $0.0001$ then a positional output would be $0.00$.  In this
+case, we will output in scientific format as {\tt 1.00e-4} instead.
+Again, if the number is an integer $1234$, then we will output in
+scientific format as {\tt 1.23e+3}.  
+In both cases, we see why the positional output (restricted
+to 3 digits) is inadequate and the scientific format (also
+restricted to 3 digits) is more accurate.
+See Appendix A.1.6 for details.
+
+One issue in numerical output is how to tell the 
+users whether there is any error in an output or not.
+For instance, if you print the value of \texttt{Expr("1.0")},
+you may see a plain \texttt{1.} (and not \texttt{1.0}).
+It is our way of saying that this value is exact.
+But if you print the value of \texttt{Expr(1.0)}, you may be surprised to
+see \texttt{1.0000}.  Why the difference? Because in the former
+case, the internal representation is a \Rat\ while
+in the latter case is a machine \double.  The latter is
+inherently imprecise and so we print as many digits as the
+current output precision allows us (in this case 5 digits).
+But in printing a \Rat\ we do not add terminal $0$'s.
+
+\paragraph{Interaction of I/O parameters.}
+It should be clear from the preceding
+that the parameters \defrel, \defabs, \definput, and (stream) output precision
+interact with each other in determining I/O behavior:
+
+\begin{center}
+\begin{tabular}{c}
+\begin{progb}{
+\> \tt setScientificFormat();
+\\
+\> \tt setDefaultInputDigits(2); \ \ \ \ \ \ \ \ \ \ \ \ // defInputDigits = 2
+\\
+\> \tt Expr X = "1234.567890";
+\\
+\> \tt cout << setprecision(6); \ \ \ \ \ \ \ \ \ \ \ \ \ // output precision = 6
+\\
+\> \tt cout << X << endl; \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ // prints .123457e+4
+\\
+\> \tt cout << setprecision(10) << X << endl;  // prints .1234567871e+4
+\\
+\> \tt cout << setprecision(100) << X << endl;  // prints .123456787109375000e+4
+}\end{progb}
+\end{tabular}
+	Program 3
+\end{center}
+
+Note that since the input precision is set to $2$,
+the internal value of $X$ is an approximation to $1234.567890$ with
+an error at most $10^{-2}$.  Thus the second output of $X$
+printed some ``wrong digits''.  In particular, the output
+$1234.567871$ contains $8$ correct digits.  
+However, notice that our semantic guarantees
+only 6 correct digits -- so this output has given us 2
+``bonus digits''.  In general, it is difficult to predict how many
+bonus digits we may get.
+Our convention for expressions is that all leaves are error-free
+and thus the output may appear strange (although it is not wrong).
+In fact, if we set the output precision to $100$, we see that
+expression $X$ is assigned the exact value of $1234.56787109375000$
+(we know this because this output was terminated prematurely before
+reaching 100 digits). 
+To force exact input, you must set \definput\ to $+\infty$:
+
+\begin{center}
+\begin{tabular}{c}
+\begin{progb}{
+\> \tt setScientificFormat();
+\\
+\> \tt setDefaultInputDigits(\coreInfty);
+\\
+\> \tt Expr X = "1234.567890"; // exact input
+\\
+\> \tt cout << setprecision(6) << X << endl; \ \ // prints .123457e+4
+\\
+\> \tt cout << setprecision(10) << X << endl; \ // prints .1234567890e+4
+\\
+\> \tt cout << setprecision(100) << X << endl; // prints .1234567889999999999e+4
+\\
+\> \tt X.approx(CORE\_INFTY, 111); // enough for 33 digits.
+\\
+\> \tt cout << setprecision(33) << X << endl;
+\\
+\> \tt // prints 33 digits: .123456789000000000000000000000000e+4
+}\end{progb}
+\end{tabular}
+	Program 4
+\end{center}
+
+% new for Core 1.4:
+
+\paragraph{Output Stream Precision.}
+Besides the output precision parameters for \BF,
+the above examples illustrate yet another parameter
+that controls output: namely the output precision parameter
+that is associated with output streams such as \texttt{cout}.
+This parameter as set using the standard \texttt{setprecision(int)} method
+of output streams.   Core provides another way to do this,
+which is currently not entirely 
+consistent with \texttt{setprecision(int)} method.
+%
+% TO MAKE IT CONSISTENT, WE ONLY NEED TO
+%	modify "setprecision(int)" to update \defOutputDig\.  
+%
+Namely, you can call the method
+\texttt{setDefaultOutputDigits(long p)} method.  This method
+will perform the equivalent of \texttt{setprecision(p)}, but in addition
+updates the global parameter \defOutputDig\ to \texttt{p}.
+It returns the previous value of \defOutputDig.
+The initial default value of \defOutputDig\ is $10$.
+% \defOutputDig\ is normally set equal to defBFOutputPrec.
+
+\paragraph{Output for Exact and Inexact \BF\ Values.} 
+A \BF\ is represented by a triple of integers
+$(man, exp, err)$ where $man$ is the mantissa,
+$exp$ the exponent and $err$ the error.  This represents
+an interval $(man \pm err)\times B^{exp}$ where
+$B=2^{-14}$ is the base.  When $err=0$, we say the
+\BF\ value is \dt{exact} and otherwise \dt{inexact}.
+For efficiency, we normalize error so that $0\le err\le B$.
+Since we do not want to show erroneous digits in the
+output, the presence of error ($err>0$) is important
+for limiting the number of \BF\ output digits.
+To illustrate this, suppose $B=2$ instead of $2^{14}$
+and our \BF\ is $x = (man, exp, err)=(10, -5, 0)$,
+written here with decimal integers.
+Then \texttt{cout << setprecision(6) << $x$} will
+show $0.3125$.  In general, we expect such a floating
+point number to have an error $B^{exp}=2^{-5}=0.03125$.
+Then $x = 0.3125 \pm 0.03125$.  This suggests that
+we should not output beyond the first decimal place.
+To ensure this behavior, we can simply set the
+error component to $1$.  The method to call is
+$x$.{\tt makeInexact()}, and as a result
+$x$ becomes $(man, exp, err)=(10, -5, 1)$.  Now, 
+\texttt{cout << setprecision(6) << $x$} will output
+only $0.3$.  There is a counterpart $x$.{\tt makeExact()}
+that makes $err=0$.  The Section on Efficiency Issues has
+related information on this.
+
+\paragraph{Connection to Real Input/Output.}
+Expression constructor from strings
+and stream input of expressions are derived
+from the \real\ constructor from strings.
+See Appendix A.2.1 and A.2.5 for more details.
+On the other hand,
+stream output of expressions is derived from
+the output of \BF\ values.  
+See Appendix A.1.6 for this.
+
+\paragraph{String and File I/O.}
+Instead of input/output from/to a stream,
+we can also input/output from/to a string.
+The methods are called \texttt{toString} and \texttt{fromString}.
+These methods are available for the number classes \BF, \Int,
+and \Rat.  For \real\ and \expr\ we only have the method
+\texttt{toString}.  In place of \texttt{fromString}, you can
+directly assign (=) a string to \real\ and \expr\ variables.
+
+The directory \examplesdir\ contains 
+examples of both string and file I/O.
+
+The need to read very large numbers from files, and
+to write them into files, is important for certain computations.
+Moreover, base for representing these numbers in files
+should be flexible enough to support standard bases for
+big integers (base 2, 10 and 16).
+Such a format is specified
+in \corepath\texttt{/progs/fileIO}.  In particular, this format assumes that
+files are ascii based, for flexibility and human
+readability.  Four basic formats are defined:
+	\begin{center}
+	Integer, Float, Normalized Float (NFloat) and Rational.
+	\end{center}
+The following methods are available:
+
+\begin{center}
+\begin{tabular}{c}
+\begin{progb}{
+\\
+\> \tt void BigInt::read\_from\_file(istream is, long maxLen = 0)
+\\
+\> \tt void BigInt::write\_to\_file(ostream os, int base = 10, long lineLen = 70)
+\\
+\> \tt void BigFloat::read\_from\_file(istream is, long maxLen = 0)
+\\
+\> \tt void BigFloat::write\_to\_file(ostream os,
+	int base = 10, long lineLen = 70)
+\\
+\> \tt void BigRat::read\_from\_file(istream is, long maxLen = 0)
+\\
+\> \tt void BigRat::write\_to\_file(ostream os, int base = 10, long lineLen = 70)
+}\end{progb}
+\end{tabular}
+\end{center}
+
+There are two bases in the representation of a \BF, the base
+of the mantissa and the base for raising the exponent.
+We call these the ``mantissa base'' and the ``exponent base''.
+We view \Int\ as having only a mantissa base.
+In the above arguments, \texttt{base} is the mantissa base.
+The exponent base is defaulted to the internal base representation
+used by our \BF\ class (which is $2^{14}$).
+Also {\tt maxLen} indicates the number of bits (not ``digits'' of the
+input file base) to be read from the input file.  
+The default value of {\tt maxLen = 0} means we read all the
+available bits.  The {\tt lineLen} tells us how many digits should
+be written in each line of the mantissa.
+Note that when we read into a \BF\, and the base is 10, then
+this may incur an approximation but the error is guaranteed
+to be smaller than half a unit in the last digit.
+
+\paragraph{Conversion to Machine Double.}
+This is strictly speaking not a numerical I/O issue,
+but one of inter-conversion among number types.
+Such details are described under individual
+number classes (Appendix A).  However, the conversion of our internal
+numbers into machine double values is an important topic
+that merits a place here.
+
+All our number classes has a \texttt{doubleValue()} method
+to convert its value to one of the two 
+nearest machine representable double value.  
+For instance, if \texttt{e} is an expression,
+we can call \texttt{e.doubleValue()} a machine double value.
+We do not guaranteed rounding to nearest but that
+this value is one of the two closest machine doubles
+(either ceiling or floor).  See \progsdir\texttt{testSqrt.cpp}
+for some discussion of the conversion errors.
+It is also useful to convert an exact value into
+an interval defined by two machine doubles.
+The method \texttt{Expr::doubleInterval()} does this.
+
+It is important to realize that all these conversions
+to machine doubles may overflow or underflow.
+It is the user's to check for this possibility.
+The function \texttt{int finite(double)} can be used for
+this check: it returns a zero
+if its argument does not represent a finite
+double value (i.e., the argument is either NaN or infinity).
+
+\section{Polynomials and Algebraic Numbers}
+	\label{sec-algebraic}
+
+Beginning in Version 1.6, we introduce arbitrary real algebraic
+numbers into expressions.  For example, suppose we want to
+define the golden ratio $\phi= 1.618033988749894\ldots$.
+It can be defined as the unique positive root of the polynomial
+$P(X)= X^2 - X - 1$. 
+We have a templated (univariate) polynomial class
+named {\tt Polynomial<NT>} where {\tt NT} is a suitable number type
+to serve as the type of the coefficients in the polynomial.
+We allow {\tt NT} to be \Int, \expr, \BF, \Rat, \lng\ or \int.
+Some \texttt{Polynomial} methods may not be meaningful or obvious
+for certain choices of {\tt NT}.  For instance, 
+many polynomial operations such as polynomial GCD depend on the concept of
+divisibility in {\tt NT}.  But the notion of divisibility for
+\BF\ values may not be so obvious (but see Appendix A under \BF).
+For \Rat, we may take the position that divisibility is the trivial relation
+(every nonzero value can divide other values).  But this will not
+be our definition.
+For \lng\ and \int, clearly coefficients may overflow.
+We regard \Int\ as the ``canonical'' number type for
+polynomial coefficients because all polynomial methods
+will be fairly clear in this case.  Hence, our
+polynomial examples will usually take \texttt{NT}=\Int.
+
+First consider how to input polynomials.
+There is an easy way to input such a polynomial, just as the
+string \texttt{"x\^{}2 - x - 1"}.  
+Currently, the coefficients from string input are assumed
+to be \Int.  A slower way (which may be more
+appropriate for large polynomials) is 
+to construct an array of its coefficients.  
+
+\begin{center}
+\begin{tabular}{c}
+\begin{progb}{
+\> \tt typedef BigInt NT;
+\\
+\> \tt typedef Polynomial<NT> PolyNT;
+\\
+\> \tt NT coeffs[] = \{-1, -1, 1\}; // coeffs[i] is the coefficient of $X^i$
+\\
+\> \tt PolyNT P(2, coeffs); \ \ \ \ \ // P = $X^2 - X - 1$
+\\
+\> \tt PolyNT Q = "x\^{}2-x-1"; \ \ \ \ // Q = $X^2 - X - 1$
+}\end{progb}
+\end{tabular}
+\end{center}
+
+We use the polynomial {\tt P} to define an \expr\ whose value is $\phi$.
+There are two ways to identify $\phi$ as the intended root of {\tt P}:
+we can say $\phi$ is the $i$-th smallest root of {\tt P} (where $i=2$)
+or we can give a \BF\ interval {\tt I = [1, 2]} that contains
+$\phi$ as the unique root of {\tt P}.   We may call the arguments
+$i=2$ or {\tt I}$=[1.0,2.0]$ the \dt{root indicators} for the polynomial {\tt P}.
+The other root of {\tt P} is $\phi' = 1-\phi$, and it has the
+root indicators $i=1$ or {\tt I = [-1.0, 0.0]}.
+
+\begin{center}
+\begin{tabular}{c}
+\begin{progb}{
+\> \tt Expr phi1 = rootOf(P, 2); \ \  // phi1 is the 2nd smallest root of P
+\\
+\> \tt BFInterval I(-1.0, 0.0); \ \ \  // I is the interval [-1, 0]
+\\
+\> \tt Expr phi2 = rootOf(P, I); \ \  // phi2 is the unique negative root of P
+\\
+\> \tt Expr Phi2 = rootOf(P, -1, 0); // Alternative
+}\end{progb}
+\end{tabular}
+\end{center}
+
+To test that {\tt phi1} and {\tt phi2} have the correct values,
+we can use the fact that $\phi+\phi' = 1$.   This is done in
+the next code fragment.
+
+Alternatively, we can use the fact that
+$\phi$ and $\phi'$ are still quadratic numbers, and
+we could have obtained these values by our original {\tt sqrt} operators,
+e.g., $\phi= (1+\sqrt{5})/2$.   However, we offer a convenient
+alternative way to get square roots, by using the radical operator.
+In general, {\tt radical(n, m)} gives the {\tt m}-th root of the
+number {\tt n}. Compared to the Version 1.6 the current version can handle
+any positive number type (\Int, \expr, \BF, etc.) for $n$.
+
+\begin{center}
+\begin{tabular}{c}
+\begin{progb}{
+\> \tt if (phi1 + phi2 == 1) cout << "CORRECT!"  << endl;
+\\
+\> \tt else cout << "ERROR!" << endl;
+\\
+\> \tt Expr goldenRatio = (1 + radical(5,2))/2: //  another way to specify phi
+\\
+\> \tt if (phi1 == goldenRatio) cout << "CORRECT!" << endl;
+\\
+\> \tt else cout << "ERROR!" << endl;
+}\end{progb}
+\end{tabular}
+	Program 5
+\end{center}
+
+Recall that the constructible reals are those real numbers
+that can be obtained from the rational operations and the
+square-root operation.
+The new constructors {\tt rootOf}
+and {\tt radical} can give rise to numbers which are
+not constructible reals.  
+
+It is possible to construct invalid \expr\ when we specify
+an inappropriate root indicator:
+when {\tt i} is larger than the number of real roots in the polynomial {\tt P},
+or when {\tt I} contains no real roots or contains 
+more than one real root of {\tt P}.
+We can generalize this by allowing root 
+indicators that are negative integers:
+if {\tt i} is negative, we interpret this to refer to the
+($-${\tt i})-th largest
+real root.  E.g., if {\tt i} is $-2$, then we want the 2nd largest real
+root.  Moreover, we allow {\tt i} to be $0$, and this refers to
+the smallest {\em positive} root.   When the root indicator is completely
+omitted, it defaults to this special case.
+
+To support these methods, we define the Sturm class that
+implements Sturm techniques and Newton iterations.
+For more details, see Appendix A.4 (Polynomials) and Appendix A.5 (Sturm).
+
+\paragraph{Beyond univariate polynomials.}
+In Version 1.7, we introduce bivariate polynomials
+as well as algebraic curves.  We provided
+basic functionality for doing arithmetic on curves
+as well as graphical display functions (based 
+on openGL) are available.
+These may be found under \progsdir\texttt{/curves}.
+
+\section{Converting Existing \candcpp\ Programs}
+	\label{sec-convert}
+
+Most of the following rules are aimed at making
+a Level 1 program compile and run at Level 3.
+So, this section might also be entitled
+``How to make your \candcpp\ program robust''.
+
+\begin{enumerate}
+
+\item
+There is a \dt{fundamental rule} for writing
+programs that intend to call the \corelib: all arithmetic
+operations and comparisons should assume error-free results.
+In other words, imagine that you are really operating
+on members of the mathematical domain $\RR$ of real numbers,
+and operations such as $+, -, \times, \div, \sqrt{}$ return
+exact (error-free) results.
+Unfortunately, programs in conventional
+programming language that have been made
+``numerically robust''  often apply tricks that violate this rule.
+Chief among these tricks is \dt{epsilon-tweaking}.
+Basically this means that all comparisons to zero
+are replaced by comparison to some small, program-dependent
+constant (``epsilon'').  There may be many such
+``epsilons'' in the program.  This is a violation of our
+fundamental rule.  
+
+Perhaps the simplest way to take care
+of this is to set these epsilons to $0$ when in Level 3.  
+There is only one main concern here.
+When comparing against such epsilons, most
+programmers do not distinguish between ``$\le$'' and ``$<$''. 
+Often, they exclusively use ``$<$'' or ``$>$'' in comparisons against
+an epsilon.
+E.g., ``$|x|< \varepsilon$'' is taken as equivalent to $x=0$.
+If you now set $\varepsilon$ to $0$ in level 3, it is clear that
+you will never succeed in this test.  Note that in \candcpp\ the
+usual function for absolute value is \texttt{fabs(x)}.  This
+function will also work correctly in Level 3. 
+
+\item
+In your code that follows the preamble
+
+\begin{verbatim} 
+        	#define CORE_LEVEL 3
+        	#include "CORE/CORE.h" 
+\end{verbatim} 
+\noindent
+you must remember that the built-in machine
+types \double\ and \lng\ will be replaced by (i.e., promoted to)
+the class \expr.  An analogous promotion
+occurs at Level 2.  If you do not want such promotions to
+occur, be sure to use {\tt machine\_double} and {\tt machine\_long}
+instead of \double\ and \lng, respectively.
+
+If you are including a standard library, it is important to ensure
+that such promotions are not applied to your library.
+An example is the standard \cpp\ library \texttt{<fstream>},
+when you need to perform file I/O in a \core\ program.
+Therefore such libraries should be placed before the
+inclusion of \texttt{CORE.h}.
+
+\item
+All objects implicitly (e.g.\  automatically promoted from \double) or
+explicitly declared to be of type \expr\ {\em must} be initialized appropriately.
+In most cases, this is not a problem since a default \expr\ constructor is 
+defined.  \expr\ objects which are dynamically allocated 
+using {\tt malloc()} will not be initialized properly.  You should 
+use the {\tt new} operator of \cpp\ instead.\\
+
+\begin{progb} {
+\> \tt double *pe, *pf;\\
+\> \\
+\> \tt // The following is incorrect at Levels 2 and 3:\\
+\> \tt pe = (double *)malloc(sizeof(double));\\
+\> \tt cout << *pe << endl;\\
+\> \tt // prints: Segmentation fault\\
+\> \tt // because the object *pe was not initialized properly \\
+\> \\
+\> \tt // This is the correct way:\\
+\> \tt pf = new double();\\
+\> \tt cout << *pf << endl;\\
+\> \tt // prints "0" (the default value)
+}\end{progb}
+
+\item
+The system's built-in printf and scanf functions cannot be used to 
+output/input the \expr\ objects directly. You need to use \cpp\ stream I/O
+instead.
+
+\begin{progb}{
+\> \tt double e = sqrt(double(2)); \\
+\> \tt cout << e << endl; // this outputs 1.4142... depending on current \\
+\>\>\>\tt         // output precision and default precision for evaluation \\
+\> \tt cin >> e;      // reads from the standard input. 
+}\end{progb}
+
+Since we can construct \expr\ objects from strings, you can use
+\texttt{scanf} to read a string value which is then assigned to
+the \expr\ object.
+Unfortunately, current implementation does not support the
+use of \texttt{printf}.
+
+\begin{progb}{
+\> \tt char s[255]; \\
+\> \tt scanf("\%s", s); \\
+\> \tt double e = s; 
+}\end{progb}
+
+\item
+Variables of type \int\ or \float\ are never
+promoted to \expr\ objects. For example,
+
+\begin{progb}{
+\> \tt // set Level 3\\
+\> \tt int i = 2;\\
+\> \tt double d = sqrt(i); \\
+\> \tt double dd = sqrt(2); 
+}\end{progb}
+\noindent
+The two {\tt sqrt} operations here actually refer to the 
+standard {\tt C} function defined in math.h, and not
+our exact {\tt sqrt} found in the \expr\ class. 
+Hence {\tt d} and {\tt dd} both hold only a 
+fixed approximation to $\sqrt{2}$.  The exact value can not be recovered.
+Here is a fix:
+
+\begin{progb} {
+\> \tt // set Level 3\\
+\> \tt int i = 2;\\
+\> \tt double e = i; \ \ \ \ \ \ \ \ \ \ \ \ \ // promote i to an \expr\ object\\
+\> \tt double d = sqrt(e); \ \ \ \ \ \ \ // the exact sqrt() is called.\\
+\> \tt double dd = sqrt(Expr(2)); // the exact sqrt() is called.
+}\end{progb}
+
+Users may work around this problem by defining the following macro~:
+
+\begin{progb} {
+\> \tt \#define sqrt(x) sqrt(Expr(x))
+}\end{progb}
+
+\core\ does not define this since it may be risky for some programs.
+
+\item
+In Level 3, constant literals (e.g., 1.3) or constant arithmetic expressions
+(e.g., 1/3) are not promoted.   Hence they may not
+give exact values.  This can cause some surprises:
+ 
+\begin{center}
+\begin{tabular}{c}
+\begin{progb} {
+\> \tt double a = 1.0/3; \ \ // the value of a is an approximation to 1/3\\
+\> \tt double b = 1.3; \ \ \ \ // the value of b is also approximate\\
+\> \tt // To input the exact value of 1/3, do this instead: \\
+\> \tt double c = BigRat(1, 3); // sure way to get exact value of 1/3\\
+\> \tt double d = "1/3"; \ \ // sure way to get exact value of 1/3\\
+\> \tt double e = "1.3"; \ \ // the global \definput\ should be\\
+\>\>\tt \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ // $+\infty$ in order for e to be exact.
+}\end{progb}
+\end{tabular}
+	Program 6
+\end{center}
+
+\item
+Note that since all the \double\ and \lng\ variables would be 
+promoted to \expr\ class during the \candcpp\ preprocessing, 
+certain \candcpp\ semantics does not work in
+Level 3 anymore. For example, a typical \candcpp\ idiom is the following:
+
+\begin{progb} {
+\> \tt double e;\\
+\> \tt if (e) \{ \ldots\ \}
+}\end{progb}
+\noindent
+The usual semantics of this code says that 
+if the value of {\tt e} is not zero, then do \ldots .
+Since {\tt e} is now an \expr\ object, you should write instead:
+
+%% it does not make sense to test whether it is
+%% zero or not. What you really want to test is whether the value represented 
+%% by e is non-zero.\\
+
+\begin{progb} {
+\> \tt double e;\\
+\> \tt if (e != 0) \{ \ldots\ \}
+}\end{progb}
+
+\ignore{
+We can view this as another example of
+violating the fundamental rule about treating
+all numbers as exact -- make sure
+the number API you use is befitting ``real numbers''.
+}
+
+\item
+Use of standard mathematical functions can be handled in
+two ways.  Note that such functions are typically those found
+in \texttt{math.h}.   Among these functions, only \texttt{sqrt()}
+is fully supported in Level 3.  The other functions such as
+\texttt{sin()}, 
+\texttt{cos()}, 
+\texttt{exp()}, 
+\texttt{log()}, etc, are not available in Level 3.
+If your program uses these functions, you can invoke
+the functions of \texttt{math.h} by explicitly
+converting any Level 3 number to machine double as argument:
+
+\begin{progb} {
+\> \tt double e = sqrt(2);  \\
+\> \tt double s = sin(e.doubleValue());   // this invokes sin() in math.h
+}\end{progb}
+
+Thus we invoke the \texttt{Expr::doubleValue()} method
+to get a machine double value before calling the sine function.
+All our number types have an equivalent \texttt{doubleValue()}
+methods.  The second way to call these mathematical functions
+is to use our hypergeometric package which computes
+these functions to any desired absolute precision.
+These functions are found under \progsdir/\texttt{hypergeom}.
+
+
+\end{enumerate}
+
+\section{Using CORE and CGAL}
+  \label{using-with-cgal}
+
+The \cgal\ library (Computational Geometry Algorithm Library, 
+\texttt{www.cgal.org}) provides a rich set of geometric primitives
+and algorithms.  
+These primitives and algorithms are all parametrized
+(templated) to receive a variety of number types.  In particular,
+you can use \core\ number types.  
+We recommend using Level 4, and that you
+directly plug \texttt{CORE::Expr} as template parameter of any CGAL kernel~:
+
+\begin{progb} {
+\> \tt \#include <CGAL/Cartesian.h> // From CGAL\\
+\> \tt \#include "CGAL\_Expr.h"      // From CORE\\
+\> \\
+\> \tt typedef CGAL::Cartesian<CORE::Expr>  Kernel;\\
+\> \tt ...
+}\end{progb}
+
+\noindent
+\core\ provides some additional functions in the 
+file \texttt{inc/CGAL\_Expr.h}, which
+are required by \cgal, so you should include this file in your program.
+This file sets the {\tt Level} to 4 and 
+includes \texttt{CORE.h}.  Some example programs may
+be found under \examplesdir\texttt{/cgal}.
+\corelib\ is also distributed under \cgal\ by {\tt Geometry Factory},
+the company that distributes commercial licenses for \cgal\ components.
+
+\section{Efficiency Issues}
+
+A Level 3 \core\ program can be much less efficient than the
+corresponding Level 1 program.  This applies to efficiency
+in terms of time as well as space.  First,
+Level 3 arithmetic and comparison can be arbitrarily 
+slower than the corresponding Level 1 operations.
+This is often caused by root bounds which may be far from optimal.
+Second,
+\expr\ objects can be arbitrarily larger in size than
+the corresponding machine number representation.
+
+This inefficiency is partly inherent,
+the overhead of achieving robustness in your code.  
+But sometimes, part of this overhead not inherent, but caused
+by the way your code is structured.
+Like any library, \corelib\ gives you the freedom to 
+write arbitrarily inefficient programs.
+In programming languages too, you can also write inefficient code,
+except that modern optimizing compilers can detect
+common patterns of suboptimal code and automatically fix it.
+This is one of our research goals for \corelib. 
+But until now, automatic optimization has not been our primary focus.
+This forces users to exercise more care.
+The following are hints and tools in \corelib\ that
+may speed up your code.  Level 3 is assumed in the following.
+
+\paragraph{Ways to Speed Up your code.}
+
+\begin{itemize}
+\item
+Share subexpressions.
+This requires developing an awareness of how expressions are
+built up, and their dependency structure.
+Thus, in comparing $E_1=\sqrt{x}+\sqrt{y}$ with
+$E_2=\sqrt{x + y + 2\sqrt{xy}}$ (they are equal for all $x, y$),
+you could share the $\sqrt{x}$ and $\sqrt{y}$ in $E_1$ and $E_2$
+as follows:
+
+\begin{progb} {
+\> \tt double x, y, sqrtx, sqrty; \\
+\> \tt cin >> x;  cin >> y;		// read from std input\\
+\> \tt sqrtx = sqrt(x);  sqrty = sqrt(y);\\
+\> \tt double E1 = sqrtx + sqrty; \\
+\> \tt double E2 = sqrt(x + y + 2*sqrtx * sqrt y); \\
+\> \tt if (E1 == E2) cout << "CORRECT!" << endl; \\
+\> \tt else cout << "ERROR!" << endl;
+}\end{progb}
+
+See \texttt{prog12.cpp} in in \corepath\texttt{/progs/tutorial} some
+timings for shared and non-shared versions of this example.
+
+\item
+Avoid divisions in your expressions if possible.
+Note that input numbers that are not integers 
+are rational numbers, and they implicitly invoke
+division.  But a special class of rational numbers,
+the $k$-ary numbers (typically, $k=2$ or $10$) can be
+quite effectively handled using some new techniques
+based on the so-called ``$k$-ary root bounds''.
+\core\ Version 1.5 has implemented such binary root bounds ($k=2$).
+\item
+Be aware that a high algebraic degree can be expensive.
+But it is just as important to realize that high algebraic
+degree by itself is not automatically a problem.
+You can add a hundred positive square roots of integers,
+and this algebraic number may have degree up to $2^100$:
+\begin{verbatim}
+	Expr s = 0;
+	for (int i=1; i<=100; i++) s += sqrt(Expr(i));
+\end{verbatim}
+You can easily evaluate this number \texttt{s}, for example.
+But you will encounter trouble when trying to 
+compare to such numbers that happen to be identical.
+
+\item
+Sometimes, use of expressions are unnecessary.
+For instance, consider\footnote{
+We are grateful for this example from Professor Siu-Weng Cheng.  
+In his example,
+the points $p_i$ are 3-dimensional points on the surface
+of a unit sphere, which has been computed.  So the coordinates
+of $p_i$ are complex expressions involving square roots.
+Since we are sure to have a true equality comparison in this
+application, the resulting code was
+extremely slow using the known root bounds, circa year 2000.
+} a piece of code
+which iterates over members of a circular list of points until
+it reaches the starting member.
+If the circular list is $(p_1, p_2,\ldots, p_n)$, and you start
+at some point $q=p_i$ in this list, you would normally
+think nothing of checking if $q = p_j$ to check if the
+entire list has been traversed.  But this can be very 
+inefficient.  In this case, you should simply compare
+indexes (check if $i=j$), as this does not involve expressions.
+\item
+Avoid unbounded depth expressions.
+A well-known formula \cite{orourke:bk}
+for the signed area of a simple polygon $P$ is to add up the signed areas
+of each triangle in any triangulation of $P$.  If $P$ has $n$ points,
+you would end up with an expression of depth $\Omega(n)$.
+If $n$ is large, you will end up with stack overflow.  Even if
+there is no overflow, comparing 
+this expression to zero (to get its sign) may be too slow.
+This example arises in an actual\footnote{
+% SHOULD CITE HIS PAPER!
+We are grateful to Professor Martin Held for this example.
+} software called FIST (``Fast Industrial-Strength Triangulation').
+FIST is routinely tested on a database of over 5000 test polygons,
+some of which have up to 32,000 points.  FIST uses the above formula
+for signed area, and this is too slow
+for Core Library (version 1.5) on 32,000 points (but
+16,000 points can be handled).
+Although it is possible to avoid computing the signed area
+when the input polygon is simple, the signed area heuristic is critical
+for achieving the ``industrial strength'' properties of FIST.
+That is, the signed area approach allows
+FIST to produce reasonable triangulations even for ``dirty data''
+(such as non-simple polygons).   One solution in this case is to
+compute the signed area approximately.
+In fact, machine precision approximation is sufficient here.
+If more precision is needed, we can use Level 2 numbers (\BF).
+
+\item
+Sometimes, \BF\ can be an adequate substitute for expressions.  
+For instance, if
+you are computing very high precision approximations
+of a number, or maintaining isolation intervals of a number
+you should use \BF\ for this purpose.   For examples,
+see our implementation of Sturm sequences in the distribution.
+Here are some useful tips.
+First, it is important to know that \BF\ carries an error
+bound, and you should probably set this error to zero in such
+applications.  Otherwise, this error propagates and
+you loose more precision than you might think.  For this purpose,
+the following methods are useful to know:
+If $x$ is a \BF\ variable, you can find out the error bits
+in $x$ by calling $x.{\tt err()}$.  You can test if the error
+in $x$ is $0$ by calling $x$.{\tt isExact()}, and if you want
+to set this error to zero, call $x$.{\tt makeExact()}.
+Sometimes, you need upper or lower bounds on the interval
+represented by an inexact \BF\ value.  In this case,
+you can call \texttt{makeCeilExact()} or \texttt{makeFloorExact()}.
+
+On the other hand, the inverse method
+$x$.{\tt makeInexact()} will set the error to 1.
+This is useful for preventing garbage digits from being printed.
+For more information, see the file \texttt{BF\_output.cpp} in
+the tutorial directory.
+
+Such error bits are positively harmful for self-correcting
+algorithms such as Newton iteration -- they may even prevent
+Newton iteration from converging.
+Note that the expression $x/2$ may not return an exact \BF\ value
+even if $x$ is exact.  If you want exact result, you must
+call the method $x.{\tt div2()}$.  This is useful when you use
+the \BF\ values for interval refinement.
+
+To get your initial \BF\ value, one often
+computes an expression $e$ and then
+call $e$.{\tt getBigFloat()} to get its current \BF\ approximation.
+
+See Appendix A.1.7 for more information.
+
+\item
+A huge rational expression can always be replaced
+by an expression with just one node.  This reduction is 
+always carried out if a global Boolean variable called
+\texttt{rationalReduceFlag} is set to true.
+You can set this flag 
+by calling \texttt{setRationalReduceFlag(bool)},
+which returns the previous value of the flag.
+For instance, when this flag is true, the time to run ``make test''
+for CORE 1.5 programs takes 1 minute 46.4 seconds;
+when this flag is false, the corresponding time is 35.9 seconds.
+Hence we do not automatically turn on this flag.  On the other hand,
+setting this flag to true can convert an infeasible computation
+into a feasible one.  Prior to CORE 1.6, the pentagon
+test (\texttt{progs/pentagon/pentagon.cpp}) is an infeasible
+computation unless we use the escape precision mechanism (see below).
+But with this flag set to true, this test is instantaneous.
+Another more significant example is Martin Held's FIST program
+-- without this flag, his program will not run with 3D data sets,
+crashing because of stack size problems.  
+
+\ignore{
+ We implement above by introducing a variable ratFlag in each node.
+ We have:  ratFlag < 0 means irrational,
+ ratFlag=0 means uninitialized,
+ and ratFlag > 0 means rational.
+ Currently, ratFlag is an upper bound on the size of the expression, i.e.
+ ratFlag(node)=ratFlag(children)+1.
+ This would be useful when we introduce transcendentals...
+}
+
+\end{itemize}
+
+\paragraph{The Problem of Inexact Inputs.}
+A fundamental assumption in EGC is that inputs
+are exact.  Even when the application does not care for exactness,
+we must treat the input as ``nominally exact''.  This assumption
+may fail for some Level 1 programs.  Handling such conversions
+will depend on the application, so it is best to illustrate this.
+An example is the FIST software above.   Although the basic FIST software
+is for triangulating a 2-dimensional polygon, it is also able
+to triangulate a 3-dimensional polygon $P$:
+FIST will first find the normal of $P$ and then
+project $P$ along this normal to the $xy$-plane.  
+The problem is thus reduced
+to triangulating a 2-dimensional polygon.  In practice, 
+the vertices of $P$ are unlikely to lie in a plane.  Hence, the
+``normal'' of $P$ is undefined.  Instead, FIST computes the average normal for
+each triple of successive vertices of $P$.  
+% For instance, when $P$ is
+% a pentagon, this results in a normal whose coordinates are expressions
+% with over $100$ nodes; the projected coordinates of $P$ involve much
+% expressions with up to $119$ nodes.  
+The algorithm will further sort the coordinates
+of the projected points in order to remove duplicate points.  This
+sorting turns out to be extremely expensive in the presence of
+duplicates (since in this case, the root bounds of the huge expressions
+determine the actual complexity). 
+In fact, FIST could not handle this data under CORE 1.5.
+It turns out that if we apply the simple
+heuristic (within CORE) of reducing all rational expressions
+into a single node, the above data could be processed by FIST without
+any change in their code, albeit very slowly.  
+This heuristic is available from CORE 1.6 onwards.
+
+As an industrial strength software,
+FIST must introduce such heuristics to handle inexact data.
+To greatly improve the speed of FIST it probably best to change
+the logic of its code.  For instance, we suggest converting
+the average normal into an approximate floating point representation.
+If we further want to preserve the principle that ``exact inputs should produce
+exact solutions'', then we can further make FIST to first check that $P$ is
+actually planar.  If so, the normal can be determined from
+any three non-collinear vertices and hence completely avoid large expressions.
+Otherwise, it can use the approximate floating point representation.
+
+\paragraph{Precision Escape Mechanism.}
+It is useful to have an escape mechanism to intervene
+when a program does not return because of high precision.
+This is controlled by the following
+two global variables with default values:
+
+\begin{progb} {
+\> \tt extLong EscapePrec  = CORE\_INFTY; \\
+\> \tt long    EscapePrecFlag = 0; \\
+}\end{progb}
+
+When {\tt EscapePrec  = CORE\_INFTY}, the escape mechanism
+is not in effect.  But when {\tt EscapePrec} has a finite value 
+like $10,000$, then we evaluate the sign of a number, we will not
+evaluate its value to an absolute precision that is
+more than past $10,000$ bits.  Instead, the {\tt EscapePrecFlag} will
+be set to a negative number and we will
+\dt{assume} that the sign is really zero. 
+Users can check the value of this flag.
+This mechanism is applied only in the addition and
+subtraction nodes of an expression.
+An example of this usage is found \corepath{\tt /progs/nestedSqrt}.
+
+When this mechanism is invoked, the result is no longer guaranteed.
+In practice, there is a high likelihood that the \dt{assumed} zero
+is really a zero.  That is because root bounds are likely to
+be overly pessimistic.
+
+\paragraph{Floating Point Filter.}
+It is well-established by recent research
+that floating point filters are extremely
+effective in avoiding costly big number computations.
+We implemented the floating point
+filter of Burnikel, Funke and Schirra (BFS).
+Note that our implementation, to achieve portability, does
+not depend on the IEEE floating point exceptions mechanism.
+This filter can be turned off or turned on (the default)
+by calling the function \texttt{setFpFilterFlag(bool)}.
+
+\paragraph{Progressive and Non-progressive Evaluation.}
+   Users can dynamically toggle a flag to instruct the system to turn off
+   progressive evaluation by calling
+   {\tt setIncrementalEvalFlag(false)}.  This feature may 
+   speed up comparisons that are likely to have
+   equality outcomes.
+   In applications such as theorem proving (see \cite{tyl:zero-test:00}),
+   this may be the case.
+However, it does not automatically
+lead to better performance even when the comparison result is an equality.
+The reason is that when we request a certain number of bits
+of precision, the system return a higher precision than necessary.
+Hence progressive evaluation may be able to achieve the
+desired root bound even though a lower precision is requested,
+while going straight to the root bound may cause significant
+overshoot in precision.
+   To turn back to progressive evaluation, call the
+   same function with a {\tt true} argument.
+
+\section{\corelib\ Extensions}
+
+We plan to provide useful \corelib\ extensions
+(\corex\ for short).
+In the current distribution, we included two simple
+\corex's, for linear algebra and for geometry, which the
+user may extend to suit their needs.  
+The  header files for these \corex's are found in the files
+{\tt linearAlgebra.h}, {\tt geometry2d.h} and {\tt geometry3d.h}
+under the \includedir.  To use any of these \corex's, just insert
+the appropriate include statements: e.g.,
+\begin{center}
+	{\tt \#include "CORE/linearAlgebra.h"}  
+\end{center}
+Note that {\tt geometry3d.h} and {\tt geometry2d.h} already
+includes {\tt linearAlgebra.h}.
+The source for the extensions are found under \extdir.
+
+The {\tt linearAlgebra} extension defines two classes: 
+{\tt Matrix} for general $m \times n$ matrices,
+and {\tt Vector} for general $n$-dimension vectors. 
+They support basic matrix and vector operations. 
+Gaussian elimination with pivoting is implemented here.
+{\tt Geometry3d} defines classes such as 3-dimensional
+{\tt Point}, {\tt Line} and {\tt Plane} based on the linear algebra
+API, while {\tt geometry2d} defines the analogous
+2-dimensional objects.
+
+The makefile at the top level automatically
+builds three versions of the \corex\ libraries,
+named {\tt libcorex++\_level1.a},
+{\tt libcorex++\_level2.a} and {\tt libcorex++\_level3.a}. 
+If you use the \corex\ classes in your own program,
+it is important to link
+with the correct library depending on the accuracy
+level you choose for your program.  
+See examples under \examplesdir\ which
+use both versions of the \corex\ library
+(in particular, \examplesdir {\tt /geom2d},
+\examplesdir {\tt /geom3d}, and \examplesdir {\tt /determinant}).
+
+\section{Miscellany}
+
+\paragraph{Invalid Inputs.}
+Core will detect the construction of invalid inputs:
+this include NaN or Infinity for machine floats and doubles,
+divide by zero and square root of negative numbers.
+The normal behaviour is to print an error message and abort.
+But you can set the \texttt{AbortFlag} to false if you
+do not want to automatically abort.  In this case, you
+can check if the \texttt{InvalidFlag} is negative.
+It is your responsibility to reset this \texttt{InvalidFlag}
+to a non-negative value.
+
+\paragraph{Debugging.}
+You can output the innards of an expression by calling
+the method \texttt{Expr::dump()}.  But these may not be comprehensible
+except for the experts.
+You can print error or warning messages by calling \texttt{core\_error()},
+and these messages will be written into a file \texttt{Core\_diagnostics}.
+
+\paragraph{Variant Libraries.}
+It is often useful to store variants of the library simultaneously.
+For instance, besides the normal library {\tt libcore++.a},
+we may want to use
+a variant library called {\tt libcore++Debug.a} which has
+information for the debugger, or some other variant
+which implement some new techniques.
+In our {\tt Makefile}s, we use a variable {\tt VAR} whose
+value {\tt \$\{VAR\}} is normally set to the empty string.
+This variable is defined in the file \corepath{\tt /make.config}.
+To produce a debugging version of the library, set this
+variable to the string "{\tt Debug}".  Then,
+in the \srcdir, type ``{\tt make}'' to automatically
+create the library {\tt libcore++\$\{VAR\}.a} which will
+be put in \libdir\ as usual.  Finally, to use the
+debugging version of the library, call \gpp\ with
+the library option {\tt -lcore++\$\{VAR\}} instead of {\tt -lcore++}.
+
+\section{Bugs and Future Work}
+\label{sec-problems}
+
+The ability of a single program to access all of four
+accuracy levels has not been fully implemented.
+Currently, support for Levels 2 and 4 is fairly basic.
+Absolute precision in Level 3 is not optimized: the system
+always determines the signs of expressions, which is sometimes
+unnecessary.  It would be useful to extend
+\expr\ to (1) allow interval values in leaves and
+(2) construct real roots of polynomials whose  
+coefficients are expressions (i.e., diamond operator).
+% and approximate values are always in \BF.
+
+We started to address many of the I/O issues raised in
+previous versions: number formats (scientific, positional, rational),
+the ability to read and write from files, especially in hex.
+But there is room for improvement.
+Bivariate polynomials and plane algebraic curves 
+were introduced in Version 1.7, and are expected to be
+developed over the next versions.
+
+\ignore{
+Input and Output can be further improved.
+(1) There are 2 number formats for inputs and outputs: scientific and
+positional.  One should allow a third format,
+for rational number input and output (e.g., $1/3$ should be available
+instead of $0.333\ldots$).
+(2) One should be able to read and write outputs in hex notation,
+thus avoid the expense of converting between binary and
+decimal representations.
+This is useful for computation with transcendental functions
+which can be sped up by table lookup of high precision constants.
+(3) It would be nice to be able to force ``exact'' output when
+possible (essentially, allow output precision to be $\infty$).
+Irrational values will be printed with some
+form of indication (e.g. trailing dots to indicate
+irrational value: $1.41421356...$) but rational values will
+be printed in rational form.
+This means our system will need to detect when a value is
+actually rational. 
+(4) We should be able to input and output \expr\ and \real\ objects
+using some character string format.
+}
+
+Future plans include
+better floating point filters,
+% (including avoiding any root bound computation until these fail),
+special determinant subsystem,
+optimized Level 2,
+optimized implementation of absolute precision bounds,
+complex algebraic numbers,
+incremental arithmetic,
+more efficient root bounds,
+expression optimization (including common subexpression detection),
+expression compilation for partial evaluation,
+transcendental functions,
+templated versions of Linear algebra and geometry extensions,
+graphical facilities,
+enriched \corex's.
+
+We would like to hear your suggestions, experience and bug reports
+at 
+	\mbox{\tt exact@cs.nyu.edu}.\\
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDIX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{appendix.tex}	% Classes reference
+\input{appendix_b.tex}	% Example
+\input{appendix_c.tex}	% Brief History
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+{\small
+\bibliographystyle{abbrv}
+\bibliography{tutorial}
+}
+\end{document}
+

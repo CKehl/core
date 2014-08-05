@@ -1,0 +1,95 @@
+===================== SOFTWARE RELEASE ANNOUNCEMENT ==========================
+
+Core Library Version 1.3 is now available for free download at
+	
+		http://cs.nyu.edu/exact/core/
+
+The Core Library (CORE) is a collection of C/C++ classes to support 
+exact computation with constructible real numbers (+,-,x,/,sqrt).
+
+Numerical nonrobustness is a widely acknowledged problem.  It has proven
+particularly intractible in the context of geometric algorithms where
+numerical data and combinatorial data are intermixed in a strongly constrained
+manner.  Recent research in the computational geometry community has
+demonstrated a variety of techniques that can address such problems.
+A basic goal of our library is to make such techniques easily accessible to 
+the wider community of programmers and researchers.
+
+Basic CORE Features:
+
+   -- ease of use:
+	Any C/C++ programmer can now write numerical or geometric code
+	that are fully robust.
+
+   -- ease of migration:
+	Many existing C/C++ programs can be converted into robust programs
+	with minimal effort.
+
+   -- natural and novel numerical accuracy model:
+	Users can choose and get the numerical accuracy that best fit
+	their applications.  
+
+   -- state of art technology:
+	Precision-driven approach to exact geometric computation,
+	best known root bounds, etc, will be incorporated into the library
+	as the field progresses.  In this way, the user's application program
+	will automatically be upgraded (at the cost of re-compilation).
+
+   -- small system:
+	Just over 2MB (including source and documentation, compressed).
+	It can serve as the "core" for your own applications.
+
+   -- tested on Sun Sparc and Linux platforms:
+	Earlier CORE 1.2 was also tested on SGI and Windows.
+
+What is new with CORE 1.3 ?
+
+   -- improved speed:
+	The runtime for all the sample programs in
+	this distribution takes 55.0 seconds under CORE 1.3.
+	Under CORE 1.2.2, the time is 1040.38 seconds.  The test
+	was performed on a Sun UltraSPARC 10, 440 MHz machine,
+
+   -- improved root bounds:
+	This yield great speedups for the important class of expressions
+	expressions with division (e.g., expressions with rational number
+	or floating point number inputs).
+
+   -- adoption of LiDIA's number kernel:
+	This allows the easy plug-in of alternative big number packages
+	such as Gnu's gmp.  CORE Distribution comes with CLN, one of the
+	fastest big number packages (it implements the Schonhage-Strassen
+	multiplication).  Because of the move to LiDIA, we now support only
+	the g++ compiler. 
+
+   -- improved numerical output:
+	Only significant digits are printed, and a choice of 
+	scientific or positional formats.
+
+   -- improved numerical input:
+	With input from strings, the user can control precision of
+	conversion, including forcing exact input. Again, choice of
+	scientific or positional formats.
+
+   -- more sample programs:
+	Examples show how one can easily use CORE to compute transcendental
+	constants (Pi) or functions (e.g., sin, log) to any an desired
+	precision.  An improved randomized prover for ruler-and-compass 
+	theorems, etc.
+
+For further information
+	http://cs.nyu.edu/exact/
+	mailto://exact@cs.nyu.edu.
+We welcome your comments and input.
+
+-- Chee Yap (yap@cs.nyu.edu)
+   Chen Li (chenli@cs.nyu.edu)
+   September 22, 2000
+
+                                | Department of Computer Science
+                                | Courant Institute of Mathematical Sciences
+                                | New York University
+                                | 251 Mercer Street
+                                | New York, NY 10012, USA
+
+===================== SOFTWARE RELEASE ANNOUNCEMENT ==========================

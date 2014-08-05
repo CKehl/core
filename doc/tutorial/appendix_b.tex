@@ -1,0 +1,71 @@
+\newpage
+\section{APPENDIX: Sample Program}
+\label{sec-example-dt}
+\label{example}
+ 
+The following is a simple program from O'Rourke's book to 
+compute the Delaunay triangulation for $n$ points.
+The program tests all triples of points to see
+if their interior is empty of other points, and outputs
+the number of ``empty'' triples. 
+In our adaptation of O'Rourke's program below,
+we generate input points that are (exactly) co-circular.
+This highly degenerate set of input points is expected
+to cause problems at Level 1 accuracy.
+
+
+{\scriptsize
+\begin{verbatim}
+----------------------------------------------------------------------
+#define CORE_LEVEL 3     // Change "3" to "1" if you want Level 1 accuracy
+#include "CORE/CORE.h"
+main() {                 // Adapted from O'Rourke's Book
+  double x[1000],y[1000],z[1000];/* input points x y,z=x^2+y^2 */
+  int    n;                      /* number of input points */
+  double xn, yn, zn;             /* outward vector normal to (i,j,k) */
+  int    flag;                   /* true if m above (i,j,k) */
+  int    F = 0;                  /* # of lower faces */
+  // define the rotation angle to generate points
+  double sintheta = 5;  sintheta /= 13;
+  double costheta = 12; costheta /= 13;
+
+  printf("Please input the number of points on the circle: ");
+  scanf("%d", &n);
+  x[0] = 65;  y[0] = 0; z[0] = x[0] * x[0] + y[0] * y[0];
+  for (int i = 1; i < n; i++ ) {
+    x[i] = x[i-1]*costheta - y[i-1]*sintheta; // compute x-coordinate
+    y[i] = x[i-1]*sintheta + y[i-1]*costheta; // compute y-coordinate
+    z[i] = x[i] * x[i] + y[i] * y[i];         // compute z-coordinate
+  }
+  for (int i = 0; i < n - 2; i++ )
+    for (int j = i + 1; j < n; j++ )
+      for (int k = i + 1; k < n; k++ ) 
+        if ( j != k ) {
+          // For each triple (i,j,k), compute normal to triangle (i,j,k). 
+          xn = (y[j]-y[i])*(z[k]-z[i]) - (y[k]-y[i])*(z[j]-z[i]);
+          yn = (x[k]-x[i])*(z[j]-z[i]) - (x[j]-x[i])*(z[k]-z[i]);
+          zn = (x[j]-x[i])*(y[k]-y[i]) - (x[k]-x[i])*(y[j]-y[i]);
+          if ( flag = (zn < 0) ) // Only examine faces on bottom of paraboloid
+            for (m = 0; m < n; m++)
+              /* For each other point m, check if m is above (i,j,k). */
+              flag = flag && 
+                ((x[m]-x[i])*xn + (y[m]-y[i])*yn + (z[m]-z[i])*zn <= 0);
+          if (flag) {
+            printf("lower face indices: %d, %d, %d\n", i, j, k);
+            F++;
+          }
+        }
+  printf("A total of %d lower faces found.\n", F);
+}
+----------------------------------------------------------------------
+\end{verbatim}
+}%\small
+
+You can compile this program at Levels 3 or Level 1.
+At Level 3 accuracy, our program will correctly
+detects all ${n \choose 3}$ triples;
+at Level 1 accuracy, it is expected to miss many empty triples.
+For example, when $n=5$, Level 3 gives all the 10 (= ${5 \choose 3}$) 
+triangles, while Level 1 produces only 3.
+
+%end

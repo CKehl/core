@@ -1,0 +1,1495 @@
+% appendix.tex
+%   -- include file for tutorial.tex
+
+\newpage
+\appendix
+\section{APPENDIX: \core\ Classes Reference}
+\label{classes}
+
+There are three main classes in the \core\ package: \expr, \real\ and \BF.
+The \expr\ class is built upon the other two classes and provides 
+the basic functionalities of Level 3 accuracy.  Although users do not have 
+to directly access the \real\ and \BF\ classes, they are useful for 
+understanding the behavior of the \corelib.
+Advanced users may want to program directly with these classes.
+Here is a brief summary of these classes.
+
+\begin{description}
+\item[\real] is a ``heterogeneous'' number system\footnote{
+In contrast, most number systems has a ``homogeneous'' representation.
+The \real\ class ought to provide automatic conversions
+among subtypes, but this capability is not
+currently implemented.
+} that currently incorporates the following six subtypes: 
+\int, \lng, \double, \Int, \Rat, and \BF.
+The first three are standard machine types while
+the latter three are big number types.
+Since Version 1.6, \Int\ and \Rat\ are wrapper classes
+for gmp's mpz and mpq.
+
+\item[\expr] is the most important class of the library.
+It provides the mechanism to support Level 3 accuracy.
+An \expr\ object has an approximate value as well as a precision.
+Users can freely set the precision of the \expr\ object,
+and its approximate value will be automatically adjusted to
+satisfy the precision.  Currently, the approximate value is a \BF.
+
+\item[\BF] is an arbitrary precision floating point number
+representation that we built on top of \Int.  It is used by
+our library to represent approximate values.  
+A \BF\ is represented by the triple $\langle m, \varepsilon, e \rangle$
+where $m$ is the mantissa of type \Int,
+$\varepsilon$ is the error bound and $e$ is the exponent. 
+It represents the interval $(m\pm \varepsilon)B^e$
+where $B=2^{14}$.  These intervals
+are automatically maintained when performing arithmetic with \BF's.
+\end{description}
+
+Besides these three classes, the user should know about the
+class \extlong\ of ``extended longs''.
+This is a wrapper around the primitive \lng\ type with
+the special values of \posInfty, \negInfty, and \NaN.
+For convenience, {\tt CORE\_INFTY} is defined to be \posInfty.
+By using these special values,
+extended longs can handle overflows as well
+as undefined operations (divide by zero) in a graceful way.
+This class is extensively used in specifying root bounds and precision.
+
+The rest of this appendix is a reference for the classes
+\BF, \real\ and \expr.
+
+
+\subsection{The Class \BF}
+A \BF\ number $x$ is given as a triple $\left< m, err, exp \right> $ 
+where the {\em mantissa} is $m$, the {\em error-bound} is
+$err \in \left\{ 0, 1, \ldots, B-1 \right\}$ and 
+$exp$ is the {\em exponent}. Here the {\em base} $B$ is equal to $2^{14}$.
+
+The ``number'' $x$ really represents the interval
+	\begin{equation}
+	\label{eq:bigfloat}
+	\left[ \left( m - err \right) B^{exp}, \left( m + err \right) B^{exp} \right]
+	\end{equation}
+We say that a real number $X$ {\em belongs} to $x$ if
+$X$ is contained in this interval.
+In our implementation of \BF, $m$ is \Int, $err$ is
+{\tt unsigned long}, and $exp$ is {\tt long} for efficiency. 
+You can obtain these components of a \BF\ by calling
+the member functions \texttt{m()}, \texttt{err()} and \texttt{exp()}.
+Since Version 1.4, \Int\ is gmp's Big Integer.
+
+If $err = 0$ then we say the \BF\ $x$ is {\em error-free}. When we
+perform the operations $ +, -, *, / $ and $ \sqrt{\phantom{\cdot}} $
+on \BF\ numbers, the error-bound is automatically propagated subject in the
+following sense:
+{\em
+if $X$ belongs to \BF\ $x$ and $Y$ belongs
+to \BF\ $y$, and we compute \BF\ $z=x\circ y$ (where $\circ\in\{+,-,\times,\div\}$)
+then $X\circ Y$ belongs to $z$.
+}  A similar condition holds for the unary operations.
+In other words, the error-bound in the result $z$ must be ``large enough''.
+
+There is leeway in the choice of the error-bound in $z$.
+Basically, our algorithms try to minimize the error-bound in $z$ subject to
+efficiency and algorithmic simplicity.
+This usually means that the error-bound in $z$ is within a small
+constant factor of the optimum error-bound
+(see Koji's thesis \cite{ouchi:thesis} for full details).
+But this may be impossible
+if both $x$ and $y$ are error-free: in this case, the optimum error-bound
+is $0$ and yet the result $z$ may not be representable
+exactly as a \BF.  This is the case for
+the operations of $\div$ and $\sqrt{\cdot}$.
+In this case, our algorithm ensures that
+the error in $z$ is within some default precision (the value of
+global variable {\tt defAbsPrec}).
+This is discussed under the class \real\ below.  
+
+A practical consideration in our design of the class \BF\ is
+that we insist that the error-bound $err$
+is at most $B$.  To achieve this, we may
+have to truncate the number of significant
+bits in the mantissa $m$ in (\ref{eq:bigfloat}) and modify the exponent $exp$
+appropriately.
+
+\subsubsection{Class Constructors for \BF}
+\label{sec-bf-cons}
+\begin{progb}{
+\> \tt 	 BigFloat();\\
+\> \tt 	 BigFloat(int);\\
+\> \tt 	 BigFloat(long);\\
+\> \tt 	 BigFloat(double);\\
+\> \tt 	 BigFloat(const BigInt\& M, unsigned long err = 0, long exp = 0);\\
+\> \tt   BigFloat(const \BF \&);\\
+\> \tt 	 BigFloat(const char *);\\
+\> \tt 	 BigFloat(const std::string\&);\\
+\> \tt 	 BigFloat(const \Rat\ \&,  const extLong\& r = defRelPrec,\\
+\> \> \> \tt            const extLong\& a = defAbsPrec);\\
+\> \tt 	 BigFloat(const \expr\ \&, const extLong\& r = defRelPrec,\\
+\> \> \> \tt            const extLong\& a = defAbsPrec);
+}\end{progb}
+
+The default constructor declares an instance with a value
+zero. The instances of \BF\ can also be constructed from \int,
+\lng, \float, \double, \Int\ and \str.  
+The last two constructors needs some clarification:
+(a)
+The constructor from strings is controlled by the global parameter \defBFinput,
+and ensures that the \BF\ value constructor differs from the
+string value by an absolute value of at most $10^{-\defBFinput}$.
+(b)
+The constructors {\tt \BF(\Rat\ R, r, a)} 
+and {\tt \BF(\expr\ e, r, a)} constructs a
+\BF\ that approximates the rational {\tt R} and expression {\tt e}
+to the composite precision {\tt [r, a]}. 
+
+\nopagebreak
+\begin{progb}{
+\> \tt BigInt I(5); \\
+\> \tt BigFloat B(I); \\
+\> \tt BigFloat bf1("0.023");\\
+\> \tt BigFloat bf2("1234.32423e-5");\\
+\> \tt BigRat R(1, 3);\\
+\> \tt BigFloat br(R, 200, CORE\_INFTY);
+}\end{progb}
+
+\subsubsection{Assignment}
+
+\begin{progb} {
+\> \tt	BigFloat\& operator=(const BigFloat\&);\\
+\> // arithmetic and assignment operators\\
+\> \tt	BigFloat\& operator+=(const BigFloat\&);\\
+\> \tt	BigFloat\& operator-=(const BigFloat\&);\\
+\> \tt	BigFloat\& operator*=(const BigFloat\&);\\
+\> \tt	BigFloat\& operator/=(const BigFloat\&);
+}\end{progb}
+
+\subsubsection{Arithmetic Operations}
+\begin{progb} {
+\> \tt	BigFloat operator+(const BigFloat\&, const BigFloat\&); \\
+\> \tt	BigFloat operator-(const BigFloat\&, const BigFloat\&); \\
+\> \tt	BigFloat operator*(const BigFloat\&, const BigFloat\&); \\
+\> \tt	BigFloat operator/(const BigFloat\&, const BigFloat\&); \\
+\> \tt	BigFloat sqrt(const BigFloat\&);
+}\end{progb}
+
+\subsubsection{Comparison}
+\begin{progb} {
+\> \tt	bool operator==(const BigFloat\&, const BigFloat\&); \\
+\> \tt	bool operator!=(const BigFloat\&, const BigFloat\&); \\
+\> \tt	bool operator< (const BigFloat\&, const BigFloat\&); \\
+\> \tt	bool operator<=(const BigFloat\&, const BigFloat\&); \\
+\> \tt	bool operator> (const BigFloat\&, const BigFloat\&); \\
+\> \tt	bool operator>=(const BigFloat\&, const BigFloat\&);
+}\end{progb}
+
+\subsubsection{Approximations}
+\label{sec-bf-approx}
+\begin{progb} {
+\> \tt  void approx(const BigInt\& I, const extLong\& r, const extLong\& a);\\
+\> \tt  void approx(const BigFloat\& B, const extLong\& r, const extLong\& a);\\
+\> \tt  void approx(const BigRat\& R, const extLong\& r, const extLong\& a);
+}\end{progb}
+
+Another important source of \BF\ numbers is via
+the approximation of \Int, \BF\ and \Rat\ numbers.  We provide
+the member functions {\tt approx} which take such a number, 
+and precision bounds $r$ and $a$ and assign to the \BF\ a value
+that approximates the input number to the specified composite
+precision bounds:
+
+\nopagebreak
+\begin{progb}{
+\> \tt BigRat R(1,3); // declares {\tt R} to have value 1/3. \\
+\\ 
+\> \tt BigFloat B; \\
+\> \tt B.approx(R,16,16); \\
+\> \tt // now {\tt B} contains an approximation of 1/3 to precision [16,16].\\
+}\end{progb}
+
+\subsubsection{Conversion Functions}
+\label{sec-bigfloat-cast}
+\begin{progb} {
+\> \tt 	 double doubleValue() const; \>\>\>\>\>\>\> // convert to machine built-in double\\
+\> \tt 	 float  floatValue()  const; \>\>\>\>\>\>\> // convert to machine built-in float\\
+\> \tt 	 long   longValue()   const; \>\>\>\>\>\>\> // convert to machine built-in long\\
+\> \tt 	 int    intValue()    const; \>\>\>\>\>\>\> // convert to machine built-in int\\
+\> \tt 	 \Int\  BigIntValue() const; \>\>\>\>\>\>\> // convert to a BigInt number\\
+\> \tt 	 \Rat\  BigRatValue() const; \>\>\>\>\>\>\> // convert to a BigRat number\\
+}\end{progb}
+
+The semantics of these expressions are mostly self-explanatory.
+For conversion of \Int, we simply use truncation of the mantissa of the \BF.
+Users must exercise caution in using these conversions. 
+Overflow or underflow errors occur silently during the conversion. 
+It is the user's responsibility to detect such conditions.
+
+\subsubsection{Algebraic Operations}
+
+\begin{progb}{
+\>\tt	bool isDivisible(const \BF\ \&a, const \BF\ \&b); \\
+\>\tt	\BF\ div\_exact(const \BF\ \&a, const \BF\ \&b); \\
+\>\tt	\BF\ gcd(const \BF\ \&a, const \BF\ \&b); 
+}\end{progb}
+
+All algebraic operations are only defined for exact \BF\ values.
+The methods \texttt{isDivisible},
+\texttt{div\_exact} and
+\texttt{gcd} are global functions. 
+The definition of divisibility is not obvious: every floating point value
+can be uniquely written in the form $m 2^e$ where $m$ is an odd integer
+and $e$ is an integer.  We say $m2^e$ divides $m'2^{e'}$ if
+$m$ divides $m'$ and $|e|\le |e'|$ and $ee'\ge 0$.
+Once this concept is defined, the meaning of these algebraic
+operations are standard.
+
+\subsubsection{I/O}
+\label{sec-BF-out}
+
+\begin{progb} {
+\> \tt 	 ostream\& operator<<(ostream\&, const BigFloat\&);\\
+\> \tt 	 istream\& operator>>(istream\&, BigFloat\&);
+}\end{progb}
+
+Stream I/O operators are defined for \BF. Integer values can be read in exactly.
+Fractional values are read in correctly within an absolute error
+of $10^{-\defBFinput}$
+where \defBFinput\ is a global parameter settable by users.
+Note that\\
+\defBFinput\ cannot be $\infty$.
+
+Outputs utilize the precision parameter $p$ associated with output
+streams. The parameter $p$ is interpreted to be the number of digits printed:
+in scientific format, this is the number of significant digits
+but in positional format, leading zeros are counted.  E.g.,
+$0.123$ and $0.001$ both have $p=4$.
+When outputting, the error bits in a \BF\ representation
+are first truncated. The output is in one of two formats: 
+{\em positional} or {\em scientific}.
+In scientific
+notation, the length of the mantissa can at most be $p$. The extra
+digits are rounded (to the closest possible output value). 
+We choose scientific
+notation if at least one of the following conditions is true:
+\begin{enumerate}
+\item The scientific notation flag is on. This flag is associated with 
+output streams in C++ and can be set using standard I/O manipulator.
+\item The absolute value of the number is smaller than $10^{-p+1}$.
+\item The absolute value of the number is bigger or equal to
+$10^{p-\delta}$ where $\delta=0$ or $1$ depending on whether
+the number is a whole number or not.
+\end{enumerate}
+
+Note that we may actually print out less than $p$ digits
+if the \BF\ value does not have that many digits of precision.
+If a \BF\ $x$ is not error-free,
+the output is a decimal number whose value
+approximates the value of $x$ correctly to the last digit.
+That means that the last significant digit $m_\ell$ really lies in the 
+range $d_\ell\pm 1$, where $d_\ell$ is the last digit of output.
+
+\ignore{
+Next, the output routine will print out at most 
+{\tt defPrtDgt} digits using a rounding to the nearest digit rule. 
+If the absolute
+value of the exponent is equal to
+or larger than {\tt defPrtDgt}, the output 
+strings use the scientific notation of the form 
+$$m_1.m_2m_3\cdots m_\ell ~\mbox{\bf e} \pm e_1e_2\cdots e_m$$
+where the $m$'s and $e$'s are in decimal notation and $\mbox{\bf e}$
+is a literal character indicating the start of the exponent. Otherwise,
+the usual decimal representation would be adopted. 
+Note that we may actually print out less than {\tt defPrtDgt}
+many digits.
+
+This output represents decimal floating point number whose value
+approximates the value of $x$ correctly to the last digit.
+That means that the last significant
+digit $m_\ell$ really lies in the range $m_\ell\pm 1$.
+The number of significant digits in this output is $\ell$, and
+it is controlled by the global variable \defprt.  The value
+of \defprt\ is defaulted to 10, but the user can change this
+at run time.  The value $\ell$ is 
+equal to the minimum of \defprt\ and the number of significant
+digits in the internal representation of $x$.
+}
+
+It is interesting to see the interplay between ostreams' {\tt precision} 
+$p$ and the composite precision {\tt [defAbsPrec, defRelPrec]}.
+Keep in mind that {\tt defAbsPrec} and {\tt defRelPrec} refer to binary bits.
+
+\begin{center}
+\begin{tabular}{c}
+\begin{progb} {
+\> \tt double q = BigRat(1, 3); \\
+\> \tt setDefaultAbsPrecision(67); // about 20 digits \\
+\> \tt cout << "q = " << setprecision(10) << q << ", in 10 digits" << endl;\\
+\> \tt   // output: q = 0.33333333, in 10 digits\\
+\> \tt cout.precision(30); // or use setDefaultOutputDigits(30, cout), \\
+\> \tt                     // default to output 30 digits.\\
+\> \tt cout << "q = " << q << endl;\\
+\> \tt  // output: q = 0.33333333333333333333, in positional notation.\\
+}\end{progb}
+\end{tabular}
+	Program 7
+\end{center}
+
+\ignore{ A LOW LEVEL WAY TO DO THE ABOVE:
+
+double q = BigRat(1, 3);
+setDefaultAbsPrecision(67); // about 20 digits
+cout << "q = " << setprecision(10) << q << ", in 10 digits" << endl;
+  // output: q = 0.33333333, in 10 digits
+cout.precision(30); // default to output 30 digits.
+cout.setf(ios::scientific, ios::floatfield); // use scientific notation
+cout << "q = " << q << ", in scientific notation." << endl;
+  // output: q = 3.3333333333333333333e-1, in scientific notation.
+cout.setf(0, ios::floatfield); // reset the format to default.
+cout << "q = " << q << ", in positional notation." << endl;
+  // output: q = 0.33333333333333333333, in positional notation.
+
+} %ignore
+
+
+\ignore{ OLD!
+\nopagebreak
+\begin{progb}{
+\> \tt setDefaultOutputDigits(4);\\
+\> // sets the number of output digits to 4.\\
+\> \tt cout << B;\\
+\> // prints the value 0.333.\\
+\> \tt setDefaultOutputDigits(6) ;\\
+\> \tt cout << B;\\
+\> // prints the value 0.33333.\\
+\> \tt setDefaultOutputDigits(20);\\
+\> \tt cout << B;\\
+\> // prints the value 0.3333333320915699005.\\ 
+\> // the precision is not high enough to get all printed digits right.\\
+\> \tt setDefaultPrecision(67, \posInfty);\\
+\> // set adequate precision for 20 correct significant decimal digits.\\
+\> \tt cout << B;\\
+\> // prints the value 0.3333333333333333333
+}\end{progb}
+} %ignore
+
+It is programmers' responsibility to
+set the composite precisions high enough to have all requested digits printed correctly.
+
+\subsubsection{Miscellaneous}
+
+To get the sign of the mantissa in a \BF, use
+	$$\texttt{int BigFloat::sign()}$$
+which returns one of the values $-1, 0, +1$.  
+Since there may be error in a \BF, this may not
+be taken as the sign of the \BF\ unless you also verify
+that the following predicate is false:
+	$$\texttt{bool BigFloat::isZeroIn()}.$$
+This predicate is true iff $0$ lies in the interval
+$[mantissa \pm err]$.  
+
+Another useful function is
+	$$\texttt{BigFloat::isExact()}$$
+which returns a true Boolean value
+if the error component of the \BF\ is zero.
+We can set this error component to zero by calling
+	$$\texttt{BigFloat::makeExact()}.$$
+There are two variants, \texttt{makeCeilExact()} and
+\texttt{makeFloorExact()}.  Why would one do this?
+There are applications where the error bound is not needed.  
+An example is when you implement a Newton iterator for roots.
+The algorithm is self-correcting, so the error bound is
+not necessary.  But after an inexact operation (e.g., division),
+the error bound is nonzero.  If you do not set this to zero, our
+automatic significance arithmetic algorithms
+may start to truncate the mantissa in order to keep the error bound
+from growing.  This may prevent Newton from converging.
+
+The most significant bit (MSB) of
+any real number $x$ is basically $\lg|x|$
+(log to base 2).  When $x$ is an exact \BF, this value is an integer.
+In general, $x$ has an error, and it represents an interval
+of the form $[x-\varepsilon, x+\varepsilon]$.  We provide two functions,
+\texttt{BigFloat::uMSB()} and \texttt{BigFloat::lMSB()},
+each returning an extended long.  Assuming that $0< x-\varepsilon$, 
+the following inequalities must hold
+	$$ \texttt{BigFloat::lMSB()} \le \lg |x-\varepsilon|
+		\le \lg | x+\varepsilon| \le \texttt{BigFloat::uMSB()}.$$
+When $x+\varepsilon < 0$, we modify the inequalities approproriately.
+When \texttt{x.isExact()} is true, the
+inequalities become equalities, and
+you can simply call the function \texttt{x.MSB()}.
+Here is an application: suppose you have computed
+a \BF\ value $x$ approximates $\sqrt{2}$.   To see
+how close $x$ is to $\sqrt{2}$, you can compute
+	$$\texttt{extLong p = (x*x - 2).uMSB() }.$$
+E.g., to guarantee that $x- \sqrt{2}< 2^{-100}$, it is enough
+to make sure that this \textit{p} is less than $-97$.
+An alternative approach is to compare $x*x -2$ to $2^{-97}$.
+You can obtain the value $2^{-97}$ by calling another helper function
+	$$\texttt{BigFloat::exp2(int n)}$$
+which returns a \BF\ whose value is $2^n$.
+
+A \BF\ is really a wrapper about a \texttt{BigFloatRep} object.
+Sometime, you may like to get at
+this ``rep'', using the member function \texttt{getRep()}.
+
+\subsection{The Class \real}
+\label{sec-real-intro}
+The class \real\ provides a uniform interface to the six subtypes of numbers:
+\int, \lng, \double, \Int, \Rat, and \BF. 
+There is a natural type coercion among these types as one would
+expect. It is as follows:
+
+\begin{center}
+$ \int \prec \lng \prec \double \prec \BF \prec \Rat $ , \\
+$ \int \prec \lng \prec \Int \prec \Rat $ .
+\end{center}
+
+The \BF\ in this coercion is assumed to be error-free. 
+To use the class \real, a program simply includes the file
+{\tt Real.h}.
+
+\nopagebreak
+\begin{progb}{
+\> \tt \#include "CORE/Real.h"
+}\end{progb}
+
+\subsubsection{Class Constructors for \real}
+% \samepage
+
+\begin{progb}{
+\> \tt  Real();\\
+\> \tt  Real(int);\\
+\> \tt  Real(long);\\
+\> \tt  Real(double);\\
+\> \tt  Real(const BigInt\&);\\
+\> \tt  Real(const BigRat\&);\\
+\> \tt  Real(const BigFloat\&);\\
+\> \tt  Real(const Real\&);\\
+\> \tt  Real(const char *str, const extLong\& prec = defInputDigits); \\
+\> \tt  Real(const std::string\& str, const extLong\& prec = defInputDigits);
+}\end{progb}
+
+The default constructor declares an instance with a default 
+\real\ with the value zero.
+Consistent with the \cpp\ language, an instance can be
+initialized to be any subtype of \real: \int, \lng, \double, \Int,
+\Rat, and \BF. 
+
+In the last constructor from string, the conversion is exact in three cases:
+(i) when the value is integral (i.e., the string has only digits);
+(ii) rational (i.e., the string contains one `/' character and digits otherwise);
+(iii) when {\tt prec} = \coreInfty.
+Otherwise, it will convert to a \BF\ number within absolute precision
+$10^{-\mathit{prec}}$.
+
+\bigskip
+
+\subsubsection{Assignment}
+% \samepage
+\begin{progb} {
+\> \tt Real\& operator=(const Real\&);\\
+\\
+\>  // arithmetic and assignment operators\\
+\> \tt	Real\& operator+=(const Real\&); \\
+\> \tt	Real\& operator-=(const Real\&); \\
+\> \tt	Real\& operator*=(const Real\&); \\
+\> \tt	Real\& operator/=(const Real\&); \\
+\\
+\>  // post- and pre- increment and decrement operators\\
+\> \tt	Real operator++(); \\
+\> \tt	Real operator++(int); \\
+\> \tt	Real operator--(); \\
+\> \tt	Real operator--(int);
+}\end{progb}
+
+Users can assign values of type \int, \lng, \double, \Int, \Rat, and
+\BF\ to any instance of \real.
+
+\nopagebreak
+\begin{progb}{
+\> \tt Real X; \\
+\\
+\> \tt X = 2; // assigns the machine \int\ 2 to {\tt X}.
+\\
+\> \tt X = BigInt(4294967295); // assigns the \Int\ 4294967295 to {\tt X}.
+\\
+\> \tt X = BigRat(1, 3); // assigns the \Rat\ 1/3 to {\tt X}.
+}\end{progb}
+
+\bigskip
+\subsubsection{Arithmetic Operations}
+\begin{progb} {
+\> \tt   Real operator-() const; \\
+\> \tt 	 Real operator+(const Real\&) const; \\
+\> \tt 	 Real operator-(const Real\&) const; \\
+\> \tt 	 Real operator*(const Real\&) const; \\
+\> \tt 	 Real operator/(const Real\&) const; \\
+\> \tt 	 Real sqrt(const Real\&);
+}\end{progb}
+
+The class \real\ supports binary operators {\tt +, -, *, /} and the
+unary operators {\tt -}, and {\tt sqrt()} with standard
+operator precedence.
+
+% \samepage
+The rule for the binary operators $bin\_op\in\{+,-,\times\}$ is as follows:
+let $ typ_X $ and $ typ_Y $ be
+the underlying types of \real\ {\tt X} and {\tt Y}, respectively.
+Then the type of \mbox{{\tt X} $ bin\_op $ {\tt Y}}
+would be $MGU=max \{ typ_1, typ_2 \} $ where the order $ \prec $ is defined
+as in the type coercion rules in Section~\ref{sec-real-intro}.  
+For instance, consider Program 8.  Although {\tt X} and {\tt Y}
+are of type {\tt RealInt}, their sum {\tt Real Z} is 
+of type {\tt RealBigInt} since the value of {\tt Z} cannot be represented
+in {\tt RealInt}.
+
+\nopagebreak
+\begin{center}
+\begin{tabular}{c}
+\begin{progb}{
+\> \tt Real X, Y, Z; \\
+\> \tt unsigned int  x, y, z; \\
+\> \tt int  xx, yy, zz; \\
+\\
+\> \tt X = 1; x = 1; xx = 1;\\
+\> \tt Y =  4294967295; // $ 2^{32}-1 $\\
+\> \tt y =  4294967295; // $ 2^{32}-1 $ \\
+\> \tt yy = 2147483647; // $ 2^{31}-1 $ \\
+\> \tt Z = X + Y;  z = x + y;  zz = xx + yy; \\
+\> \tt cout << "Z = " << Z << endl; \ // prints: Z = 4294967296 (correct!)\\
+\> \tt cout << "z= " << z << endl;  \ // prints: z = 0 (overflow)\\
+\> \tt cout << "zz= " << zz << endl;  // prints: z = -2147483648 (overflow)\\
+}\end{progb}
+\end{tabular}
+	Program 8
+\end{center}
+
+\paragraph{Square Root.}
+The result of {\tt sqrt()} is always a \BF.
+There are two cases: in case the original input has an error $err>0$,
+then the result of the {\tt sqrt()} operation has
+error-bound at most $16\sqrt{err}$ , see \cite{ouchi:thesis}.
+If $err=0$, then the absolute error of the result is
+at most $2^{-a}$ where $a$=\defabs.
+
+\nopagebreak
+\begin{progb}{
+\> \tt Real X = 2.0; \\
+\\
+\> \tt cout << setprecision(11) << sqrt(X) << endl; \\
+\> // prints: 1.414213562
+}\end{progb}
+
+\paragraph{Division.}
+The type $typ_Z$ of {\tt Z = X / Y} is either \Rat\ or \BF. 
+If both $typ_X$ and $typ_Y$ are not \float, \double\ or \BF, then
+$typ_Z$ is \Rat; otherwise, it is \BF.
+
+If the output type is \Rat, the output is exact.
+For output type of \BF, the error bound in {\tt Z} is determined as follows.
+Inputs of type \float\ or \double\ are considered to be error-free,
+so only \BF\ can have positive error.
+If the error-bounds in {\tt X} or {\tt Y} are positive, then
+the relative error in {\tt Z} is at most $12\max\{relErr_X,relErr_Y\}$
+where $relErr_X,relErr_Y$ are the relative errors in {\tt X}
+and {\tt Y}, respectively.
+If both {\tt X} and {\tt Y} are error-free then the
+relative error in {\tt Z} is at most \defrel.
+
+
+\subsubsection{Comparison}
+% \samepage
+\begin{progb} {
+\> \tt	bool operator==(const Real\&) const;\\
+\> \tt	bool operator!=(const Real\&) const;\\
+\> \tt	bool operator< (const Real\&) const;\\
+\> \tt	bool operator<=(const Real\&) const;\\
+\> \tt	bool operator> (const Real\&) const;\\
+\> \tt	bool operator>=(const Real\&) const;
+}\end{progb}
+
+\subsubsection{Real I/O}
+\label{sec-real-out}
+% \samepage
+
+\begin{progb} {
+\> \tt  istream\& operator>>(istream\&, Real);\\
+\> \tt  ostream\& operator<<(ostream\&, const Real\&);
+}\end{progb}
+The input string is parsed and if the value is integral, it is
+read in exactly. Otherwise, it is approximated with absolute
+precision \definput\ (in decimal). Note that if
+\definput\ is $\infty$, the input is read in exactly
+as a big rational number. 
+
+To output the value of an instance of \real, we can use the standard
+\cpp\ output stream operator {\tt <<}.
+Output is in decimal representation.
+There are two kinds of decimal outputs:
+for \int, \lng, \Int\ and \Rat\ subtypes, this is the exact
+value of \real.  But for \double\ and \BF\ subtypes, we use
+the decimal floating point notation described under
+\BF\ output. 
+
+\nopagebreak
+\begin{center}
+\begin{tabular}{c}
+\begin{progb}{
+\> \tt BigRat R(1, 3); \\
+\> \tt BigFloat B(R); \\
+\> \tt BigInt   I = 1234567890;\\
+\> \tt cout.precision(8); // set output precision to 8\\
+\\
+\> \tt Real Q = R; \\
+\> \tt Real X = B; \\
+\> \tt Real Z = I; \\
+\\
+\> \tt cout << R << endl;   // prints: \tt 1/3 \\
+\\
+\> \tt cout << Q << endl;   // prints: \tt 0.3333333 \\
+\\
+\> \tt cout << X << endl;   // prints: \tt 0.3333333\\
+\\
+\> \tt cout << Z << endl;   // prints: \tt .12345679e+10
+}\end{progb}
+\end{tabular}\\
+	Program 9
+\end{center}
+
+Other related functions are
+
+\begin{progb}{
+\> \tt int BigInt::fromString(const char* s, int base = 0);
+\\
+\> \tt std::string BigInt::toString(int base = 10);
+\\
+}\end{progb}
+
+If {\tt base = 0}, then a prefix {\tt p} in string {\tt s}
+tself determines the base: {\tt p = 0b} means binary,
+{\tt p = 0} means octal,
+{\tt p = 0x} means hexadecimal,
+{\tt p} is the empty string means decimal.
+
+\subsubsection{Approximation}
+\begin{progb} {
+\> \tt Real approx(const extLong\& r, const extLong\& a) const;
+}\end{progb}
+
+Force the evaluation of the approximate value to the composite 
+precision $[r, a]$. The returned value is always a {\tt RealBigFloat}
+value.
+\ignore{
+Actually it is built upon the \BF\ functions described in
+Section~\ref{sec-bf-approx}.
+}
+
+\subsubsection{Miscellaneous}
+\begin{progb} {
+\> // get the sign of a Real value\\
+\> \tt  int Real::sign() const;\\
+\> \tt  int sign(const Real\&);
+}\end{progb}
+
+\subsection{The Class \expr}
+
+To use the class \expr, a program simply includes the file
+{\tt Expr.h}. The file {\tt Real.h} is automatically included 
+with {\tt Expr.h}.
+
+\nopagebreak
+\begin{progb}{
+\> \tt \#include "CORE/Expr.h"
+}\end{progb}
+
+For most users,
+the ideal way to use our library is to have the user
+access only the class \expr\ indirectly by setting the accuracy level
+to 3 so that \double\ and \lng\ will be prompted to \expr.
+
+An instance of the class \expr\ $ E $ is formally a triple
+$$ E = ( T, P, A )$$
+where $T$ is an {\em expression tree},
+$P$ a composite precision,
+and $A$ is some real number or $\uparrow$ (undefined value).
+The internal nodes of $T$
+are labeled with one of those operators
+	\begin{equation}\label{eq:op}
+	 +, -, \times, \div, \sqrt{\cdot},
+	\end{equation}
+and the leaves of $T$ are labeled by \real\ values or is $\uparrow$.
+$P=[r,a]$ is a pair of \extlong, with $ r $ non-negative.
+If all the leaves of $T$ are labeled by \real\ values, then
+there is a real number $V$ that is the value of the expression $T$;
+otherwise, if at least one leaf of $T$ is labeled by $\uparrow$, then $V=\uparrow$.
+Finally, the value $A$ satisfies the relation
+	$$A\simeq V [r,a].$$
+This is interpreted to mean either $V=A=\uparrow$ or
+$A$ approximates $V$ to precision $P$.
+In the current implementation, leaves must hold exact values.
+Moreover, the value $A$ is always a \BF.
+The nodes of expression trees are instances of the
+class \exprep.  More precisely,
+each instance of \expr\ has a member \rep\ that points
+to an instance of \exprep.  Each instance of \exprep\ is allocated on
+the heap
+and has a type, which is either one of the operations
+in (\ref{eq:op}) or type ``constant''.
+Depending on its type, each instance of \exprep\ has zero, one or two pointers
+to other \exprep.  For instance, a constant \exprep,
+a $\sqrt{\cdot}$-\exprep\ and a +-\exprep\ has
+zero, one and two pointers, respectively.
+The collection of all \exprep s together
+with their pointers constitute a directed acyclic graph (DAG).
+Every node $N$ of this DAG defines an expression tree $E(N)$ in the
+natural way.
+Unlike \cite{ouchi:thesis}, assignment to \expr\ has the standard semantics.
+As an example, after the assignment $e = f \odot g$, 
+$\val(e) = \val(f) \odot \val(g)$ and $\val(e)$ does not change
+until some other assignment to $e$. In particular, subsequent assignments
+to $f$ and $g$ do not affect $\val(e)$.
+
+\bigskip
+
+\subsubsection{Class Constructors for \expr}
+
+% \samepage
+
+\begin{progb}{
+\> \tt  Expr(); \\
+\> \tt  Expr(int); \\
+\> \tt  Expr(long); \\
+\> \tt  Expr(unsigned int); \\
+\> \tt  Expr(unsigned long); \\
+\> \tt  Expr(float); \\
+\> \tt  Expr(double); \\
+\> \tt  Expr(const BigInt \&); \\
+\> \tt  Expr(const BigFloat \&); \\
+\> \tt  Expr(const BigRat \&); \\
+\> \tt  Expr(const char *s, const extLong\& prec=defInputDigits); \\
+\> \tt  Expr(const std::string \&s, const extLong\& prec=defInputDigits); \\
+\> \tt  Expr(const Real \&); \\
+\> \tt  Expr(const Expr \&); // copy constructor \\
+\> \tt  template<class NT> \\
+\>\> \tt  Expr(const Polynomial<NT>\& p, int n=0);\\
+\>\>\>	// this specifies the n-th smallest real root. \\
+\> \tt  template<class NT> \\
+\>\> \tt  Expr(const Polynomial<NT>\& p, const BFInterval\& I);\\
+\>\>\>	// this specifies the unique real root in interval I.
+}\end{progb}
+
+The default constructor of \expr\ constructs a constant
+\expr\ object with the value zero.
+When a constructor is called with some \real\ value, then a 
+parameter which contains the specified \real\ value is declared.
+
+In \corelib\ 1.6, we introduced a new constant \expr\ object which is
+constructed from a polynomial (see Appendix A.4 for 
+the \Poly\ class).  The value is a real root of
+this polynomial, and so we need an argument to indicate
+a unique root.  This can be an closed interval $I$
+comprising a pair of \BF's, or an integer $n$.  
+Collectively, both $n$ and $I$ are called {\em root indicators}.
+The interval $I$ must be {\em isolating} meaning
+that it contains a unique real root of the polynomial.
+If $n\ge 1$, then we specify the $n$th
+{\em smallest} real root (so $n=1$ is the smallest real root).
+If $n\le -1$, this refers to the $(-n)$-th {\em largest} real root.
+
+For convenience, we also provide three global functions to help the user
+construct such \expr\ node:
+
+\begin{progb}{
+\> \tt  template<class NT> \\
+\> \> \tt  rootOf(const Polynomial<NT>\& p, int n=0); \\
+\> \tt  template<class NT> \\
+\> \> \tt  rootOf(const Polynomial<NT>\& p, const BFInterval\& I); \\
+\> \tt  template<class NT> \\
+\> \> \tt  radical(const NT\& k, int m); // the m-th root of k\\
+}\end{progb}
+
+So for a polynomial {\tt P}, both 
+{\tt Expr e(P, i)} and {\tt Expr e = rootOf(P, i)} are
+equivalent (where {\tt i} is a root indicator).
+
+
+\ignore{
+\nopagebreak
+A variable is declared if a constructor is called with an algebraic
+expression which involves operators
+{\tt +}, {\tt -}, {\tt *}, {\tt /} or {\tt sqrt()},
+instances of \expr\ (can be either parameters or variables), and
+\real\ values. However, the expressions must be dags (i.e., cycles
+are not allowed).
+}
+
+\bigskip	
+\subsubsection{Assignments}
+\begin{progb} {
+\> \tt   Expr\& operator=(const Expr\&); \\ 
+\\
+\> \tt 	 Expr\& operator+=(const Expr\&); \\
+\> \tt 	 Expr\& operator-=(const Expr\&); \\
+\> \tt 	 Expr\& operator*=(const Expr\&); \\
+\> \tt 	 Expr\& operator/=(const Expr\&); \\
+\\
+\> \tt 	 Expr\& operator++(); \\
+\> \tt 	 Expr   operator++(int); \\
+\> \tt 	 Expr\& operator--(); \\
+\> \tt 	 Expr   operator--(int);
+}\end{progb}
+
+
+
+%%\subsubsection{Assignments}
+%%
+%%Two distinct instances of the class \expr\ may share their \rep\
+%%s. Assignments to instances of \expr\ must therefore be handled
+%%carefully.
+%%
+%%Depending on what is on the right hand side of the assignment, there
+%%are three distinct meanings for assignments.
+%%
+% %%\samepage
+%%If the RHS is a \real\ value, then the assignment is called {\em value
+%%assigning}; the LHS becomes a parameter.
+%%
+%%\nopagebreak
+%%\begin{progb}{
+%%\> \tt Expr e, f; \\
+%%\> \tt Real X; \\
+%%\\
+%%\> \tt e = X; \\
+%%\> \tt f = 5; \\
+%%\> // value assigning; \\
+%%\> // {\tt e} and {\tt f} are now parameters.
+%%}\end{progb}
+%%
+% %%\samepage
+%%If the RHS is an algebraic expression, then the assignment is called
+%%{\em constructing}; the LHS becomes a variable.
+%%
+%%\nopagebreak
+%%\begin{progb}{
+%%\> \tt Expr e, f, g; \\
+%%\\
+%%\> \tt e = f * g; \\
+%%\> // {\tt e} is now a variable.
+%%}\end{progb}
+%%
+%%\bigskip
+%%
+
+\subsubsection{Arithmetic Operations}
+% \samepage
+\begin{progb} {
+
+\> \tt Expr operator-() const; //unary minus \\
+\> \tt Expr operator+(const Expr\&, const Expr\&); //addition \\
+\> \tt Expr operator-(const Expr\&, const Expr\&); //subtraction \\
+\> \tt Expr operator*(const Expr\&, const Expr\&); //multiplication \\
+\> \tt Expr operator/(const Expr\&, const Expr\&); //division \\
+\> \tt Expr sqrt(const Expr\&); // square root \\
+\> \tt Expr abs(const Expr\&); // absolute value \\
+\> \tt Expr fabs(const Expr\&); // same as abs()  \\
+\> \tt Expr pow(const Expr\&, unsigned long); // power \\
+\> \tt Expr power(const Expr\&, unsigned long); // power \\
+}\end{progb}
+
+% WHAT ABOUT the 
+
+% \samepage
+For the convenience and efficiency,
+integer powers can be constructed by
+applying the function {\tt power()}.
+	
+\nopagebreak
+\begin{progb}{
+\> \tt Expr e = 3 * power(B, 5);\\
+\> \>     // alternative for "Expr e = 3 * B*B*B*B*B.\\
+}\end{progb}
+
+\subsubsection{Comparisons}
+% \samepage
+
+\begin{progb} {
+\> \tt  bool operator==(const Expr\&, const Expr\&); \\
+\> \tt  bool operator!=(const Expr\&, const Expr\&); \\
+\> \tt  bool operator< (const Expr\&, const Expr\&); \\
+\> \tt  bool operator<=(const Expr\&, const Expr\&); \\
+\> \tt  bool operator> (const Expr\&, const Expr\&); \\
+\> \tt  bool operator>=(const Expr\&, const Expr\&);
+}\end{progb}
+
+The standard \cpp\ comparison operators {\tt <}, {\tt >}, {\tt <=},
+{\tt >=}, {\tt ==}, and {\tt != } perform ``exact comparison''. When
+{\tt A < B} is tested, {\tt A} and {\tt B } are evaluated to
+sufficient precision so that the decision is made correctly. Because
+of root bounds, such comparisons always terminate. The
+returned value is a non-negative integer, where 0 means ``false'' while
+non-0 means ``true''.
+
+%  // An example of O'Rourke:
+\nopagebreak
+\begin{center}
+\begin{tabular}{c}
+\begin{progb}{
+\> \tt Expr e[2];\\
+\> \tt Expr f[2];\\
+\> \tt e[0] = 10.0; e[1] = 11.0;\\
+\> \tt f[0] = 5.0;  f[1] = 18.0;\\
+\> \tt Expr ee = sqrt(e[0])+sqrt(e[1]);\\
+\> \tt Expr ff = sqrt(f[0])+sqrt(f[1]);\\
+\> \tt if (ee>ff) cout << "sr(10)+sr(11) > sr(5)+sr(18)" << endl;\\
+\> \tt     else cout << "sr(10)+sr(11) <= sr(5)+sr(18)" << endl;\\
+\> // prints: $sr(10)+sr(11) > sr(5)+sr(18)$\\
+}\end{progb}
+\end{tabular}\\
+	Program 10
+\end{center}
+
+\bigskip
+
+\subsubsection{Expr I/O}
+
+% % \samepage
+
+\begin{progb} {
+\> \tt  ostream\& operator<<(ostream\&, const Expr\&); \\
+\> \tt  istream\& operator>>(istream\&, Expr \&);
+}\end{progb}
+
+The input will construct a {\tt ConstRep} with a {\tt Real} value
+read in from the input stream. The input routine for {\tt Real} is
+discussed in Section~\ref{sec-real-out}.
+
+The standard \cpp\ operator {\tt <<} outputs the stored approximate 
+value which is always a \BF\ number. If there is no
+approximate value available, it will force an evaluation to the
+default precisions.
+It prints as many digits of significance as is currently known as correct 
+(up to the output precision specified). See Section~\ref{sec-BF-out} for 
+examples.
+
+\subsubsection{Approximation}
+\begin{progb} {
+\> \tt Real approx(const extLong\& r = defRelPrec, const extLong\& a = defAbsPrec);
+}\end{progb}
+
+
+{\tt A.approx(r, a)} evaluates {\tt A} and returns its approximate value
+to precision {\tt [r, a]}. If no argument is passed, then {\tt A} is
+evaluated to the default global precision [\defrel, \defabs]. If the
+required precision is already satisfied by the current approximation, 
+the function just returns the current approximate value. 
+
+An expression is not evaluated until the evaluation is 
+requested explicitly (e.g., by {\tt approx()}) or implicitly 
+(e.g.\ by some I/O operations).
+
+\nopagebreak
+\begin{progb}{
+\> \tt Expr e; \\
+\> \tt Real X; \\
+\> \tt unsigned r; int a; \\
+\\
+\> \tt X = e.approx(r, a); \\
+\> // {\tt e} is evaluated to precision at least \tt [r, a] \\
+\> // and this value is given to {\tt X};
+}\end{progb}
+
+The following helper functions allow you to get at the
+current approximate value in an \expr:
+
+\nopagebreak
+\begin{progb}{
+\> \tt Expr e; \\
+\> \tt $\vdots$ \\
+\> \tt e.sign(); // returns the exact sign of e (note that e.getSign() is deprecated,\\
+\> \>\>\> as "sign()" is the uniform interface for all the number classes\\
+\> \tt e.BigFloatValue(); // returns the current BigFloat approximation \\
+\> \tt e.getMantissa(); // returns the mantissa of current BigFloat \\
+\> \tt e.getExponent(); // returns the exponent of current BigFloat \\
+}\end{progb}
+
+\subsubsection{Conversion Functions}
+\label{sec-expr-cast}
+\begin{progb} {
+\> \tt 	 double doubleValue() const; \>\>\>\>\>\>\> // convert to machine built-in double\\
+\> \tt 	 float  floatValue()  const; \>\>\>\>\>\>\> // convert to machine built-in float\\
+\> \tt 	 long   longValue()   const; \>\>\>\>\>\>\> // convert to machine built-in long\\
+\> \tt 	 int    intValue()    const; \>\>\>\>\>\>\> // convert to machine built-in int\\
+\> \tt 	 \Int\  BigIntValue() const; \>\>\>\>\>\>\> // convert to a BigInt number\\
+\> \tt 	 \Rat\  BigRatValue() const; \>\>\>\>\>\>\> // convert to a BigRat number\\
+\> \tt 	 \BF\  BigFloatValue() const; \>\>\>\>\>\>\> // convert to a BigFloat number\\
+}\end{progb}
+
+The semantics of these operations are clear except for converting into
+\Rat\ or \BF.  For \BF, we use the current approximate  value of the
+expression. For \Rat, we use the same \BF\ value converted into a rational number.
+Note that users must exercise caution in using these conversions. 
+Overflow or underflow errors occur silently during the conversion. 
+It is the user's responsibility to detect such conditions.
+Nevertheless, they are useful for converting 
+existing \candcpp\ programs.  E.g.,
+these operators can be applied on the {\tt printf()} arguments. See 
+Section~\ref{sec-convert} for details.
+
+\subsection{Filters and Root Bounds}
+\label{sec-expr-filters}
+The expression class has
+an elaborate mechanism for computing root bounds,
+and a floating point filter.
+Our filters is based on the so-called BFS Filter \cite{bfs:exact-cascaded:01}.
+Our root bounds are a combination of several techniques
+(BFMSS Bound, Measure bound and conjugate bound).
+In fact, the BFMSS bound is the so-called k-ary version
+\cite{pion-yap:kary:03}.  For more details on these topics, see
+\cite{li-pion-yap:progress:04}.
+
+
+\subsection{The Template Class \Poly}
+
+Class \Poly\ is a template class, which can be instantiated with the 
+number type {\tt NT} of polynomial coefficients.   
+We support {\tt NT} chosen from \int\, \Int\, \BF\, \Rat\ and \expr.
+
+Since Version 1.6, the Class \Poly\ is incorporated into \corelib.
+In particular, the file \texttt{CORE.h} or \texttt{Expr.h} automatically
+include the files \texttt{poly/Poly.h} and \texttt{poly/Poly.tcc}.
+The following constructors are available for this class:
+
+\begin{progb}{
+\> \tt Polynomial();    // the Zero Polynomial \\
+\> \tt Polynomial(int n);   // the Unit Polynomial of nominal deg $n\ge 0$ \\
+\> \tt Polynomial(int n, NT* coef); // coef is the array of coefficients\\
+\> \tt Polynomial(const VecNT \&); // VecNT is a vector of coefficients\\
+\> \tt Polynomial(int n, const char * s[]);\\
+\> \tt Polynomial(const Polynomial \&); \\
+\> \tt Polynomial(const string \& s, char myX='x' );\\
+\> \tt Polynomial(const char * s, char myX='x' ); 
+}\end{progb}
+
+The last two constructors takes a string {\tt s}.
+They are convenient and intuitive to use, and 
+works best for up to moderate size polynomials.
+For instance, The user can construct a polynomial
+by calling \mbox{\tt Polynomial p("3x\^2 + 4*x + 5")} using
+the default variable name {\tt x}.  If you use some
+other variable name such as {\tt Z}, then you can use
+the second argument to specify this.  E.g.,
+\mbox{\tt Polynomial p("3Z \^2 + 4*Z  + 5", 'Z')}.
+The syntax for a valid input string {\tt s} given by the following
+BNF grammar:
+
+\begin{verbatim}
+[poly] -> [term] | [term] '+/-' [poly] \\
+                    | '-' [term] | '-' [term] '+/-' [poly] \\
+[term] -> [basic term] | [basic term] [term] | [basic term]*[term]\\
+[basic term] -> [number] | 'x'
+                    | [basic term] '^' [number] | '(' [poly] ')'
+\end{verbatim}
+
+The recursiveness in these rules meant that an input string such as
+{\tt s = "(2x - 1)\^12 (x\^2 - 2x + 3)"} is valid.
+See \progsdir/\texttt{poly/parsePoly.cpp} for examples. 
+
+When specifying an array {\tt coef} of coefficients,
+the coefficient of the power product $x^i$
+is taken from {\tt coeff[i]}.  So the constant term is {\tt coeff[0]}.
+If we want to reverse this ordering (and treat
+{\tt coeff[0]} as the leading coefficient),
+we can first use the above constructor, and then
+reverse the polynomial (the reverse method is listed below).
+
+An example of how to use these constructors are shown below:
+
+\begin{progb}{
+\> \tt typedef BigInt NT; \\
+\> \tt typedef Polynomial<NT> PolyNT;  // convenient typedef \\
+\> \tt PolyNT P1;     // Zero Polynomial \\
+\> \tt PolyNT P2(10); // Unit Polynomial of degree 10\\
+\> \tt NT coeffs[] = \{1, 2, 3\}; \\
+\> \tt PolyNT P3(1, coeffs); // P3(x) = 1 + 2x + 3x**2\\
+\> \tt const char* s[] = \{"123456789", "0", "-1"\}; \\
+\> \tt PolyNT P4(1, s) // P4(x) = 123456789 - x**2; \\
+\> \tt PolyNT P5("u\^2(u + 234)\^2 - 23(u + 2)*(u+1)", 'u');
+}\end{progb}
+
+You can also input these coefficients as strings (this
+is useful when the coefficients are so large that
+they may overflow a machine integer).
+
+\subsubsection{Assignments}
+
+\begin{progb} {
+\> \tt   Polynomial\& operator=(const Polynomial\&); \\ 
+\\
+\> \tt 	 Polynomial\& operator+=(const Polynomial\&); \\
+\> \tt 	 Polynomial\& operator-=(const Polynomial\&); \\
+\> \tt 	 Polynomial\& operator*=(const Polynomial\&); 
+}\end{progb}
+
+\subsubsection{Arithmetric Operations}
+
+\begin{progb} {
+\> \tt   Polynomial\& operator-(); \\ 
+\\
+\> \tt 	 Polynomial\& operator+(const Polynomial\&, const Polynomial\&); \\
+\> \tt 	 Polynomial\& operator-(const Polynomial\&, const Polynomial\&); \\
+\> \tt 	 Polynomial\& operator*(const Polynomial\&, const Polynomial\&); 
+}\end{progb}
+
+\subsubsection{Comparisons}
+
+\begin{progb} {
+\> \tt 	 bool operator ==(const Polynomial\&, const Polynomial\&); \\
+\> \tt 	 bool operator !=(const Polynomial\&, const Polynomial\&); 
+}\end{progb}
+
+\subsubsection{I/O}
+
+\begin{progb} {
+\> \tt 	 ostream\& operator<<(ostream\&, const Polynomial\&);\\
+\> \tt 	 istream\& operator>>(istream\&, Polynomial\&);
+}\end{progb}
+
+\subsubsection{Manipulation and Query Functions}
+
+The following methods are used to manipulate (i.e., modify)
+to query polynomials:
+
+\begin{progb} {
+\> \tt  int expand(int n);      // Change the nominal degree to n \\
+\> \tt  int contract();	        // get rid of leading zeros \\
+\> \tt  int getDegree() const;	// nominal degree \\
+\> \tt  int getTrueDegree() const;  // true degree \\
+\> \tt  const NT\& getLeadCoeff() const; // get TRUE leading coefficient \\
+\> \tt  const NT\& getTailCoeff() const; // get last non-zero coefficient\\
+\> \tt  NT** getCoeffs() ;		// get all coefficients \\
+\> \tt  const NT\& getCoeff(int i) const; // Get coefficient of $x^i$ \\
+\> \tt  bool setCoeff(int i, const NT\& cc);i // Makes cc the coefficient\\
+\>\>	// of $x^i$; return FALSE if invalid i. \\
+\> \tt  void reverse();		// reverse the coefficients \\
+\> \tt  Polynomial \& negate(); //Multiply by -1.\\
+\> \tt  int makeTailCoeffNonzero(); // Divide (*this) by $x^k$, so that\\
+\>\>    // the tail coeff is non-zero. Return k.\\
+}\end{progb}
+
+\subsubsection{Algebraic Polynomial Operations}
+
+\begin{progb}{
+\>\tt  Polynomial\& differentiate();   // self-differentiation\\
+\>\tt  Polynomial\& differentiate(int n); // multi self-differentiation\\
+\>\tt  Polynomial\& squareFreePart();  // P/gcd(P,P') \\
+\>\tt  Polynomial\& primPart(); // Primitive Part \\
+\>\tt  Polynomial pseudoRemainder (const Polynomial\& B, NT\& C);\\
+\>\>  // The pseudo quotient of (*this) mod B is returned, but (*this) is\\
+\>\>  // transformed into the pseudo remainder.  If argument C is not not\\
+\>\>  // null, then C*(*this) = B*pseudo-quotient + pseudo-remainder.\\
+\>\tt   Polynomial \& negPseudoRemainder (const Polynomial\& B); \\
+\>\>    // Same as the previous one, except negates the remainder.\\
+\>\tt  Polynomial reduceStep (Polynomial\& p ); \\
+}\end{progb}
+
+All of the above operations are self-modifying.  If this
+is undesirable, the user ought to make a copy of the polynomial first.
+
+\subsubsection{Numerical Polynomial Operations}
+
+These operations include evaluation and root bounds:
+
+\begin{progb}{
+\> \tt  Expr eval(const Expr\&) const;		// polynomial evaluation \\
+\> \tt  BigFloat eval(const BigFloat\&) const;	// polynomial evaluation \\
+\> \tt  template <class myNT>  myNT eval(const myNT\&) const;
+		// evaluation at an\\
+\> \>   //arbitrary number type.\\
+\> \tt  BigFloat CauchyUpperBound() const;  // Cauchy Root Upper Bound \\
+\> \tt  BigFloat CauchyLowerBound() const;  // Cauchy Root Lower Bound \\
+\> \tt  BigFloat sepBound() const;	// separation bound (multiple roots allowed) \\
+\> \tt  BigFloat height() const;		// height function\\
+\> \tt  BigFloat length() const;		// length function\\
+}\end{progb}
+
+Note that the {\tt eval} function here is a generic function:
+it allows you to evaluate the polynomial at any number type
+{\tt myNT}.  The return type is also {\tt myNT}.  To do this,
+we convert each coefficient (which has type {\tt NT})
+of the polynomial into type {\tt myNT}.  Then all the operations
+of the evaluation is performed within the class {\tt myNT}.
+For this to work properly, we therefore require that
+{\tt NT}$\le${\tt myNY} (recall that there is a natural
+partial ordering among number types).   For instance, if {\tt NT}=\BF,
+then {\tt myNT} can be \BF, \Rat\ or \expr.   
+In particular, using {\tt myNT} will ensure exact results; but this
+may be expensive and in many
+situations, \BF\ is the correct choice (e.g., Newton iteration).
+
+\subsubsection{Miscellaneous}
+Some methods in \Poly\ depend on the choice of {\tt NT}.
+In particular, some methods need to know whether the coefficient
+type {\tt NT} supports\footnote{
+	We say ``general division'' to distinguish
+	this from special kinds of division such as
+	division by 2 (this is supported by \BF)
+	or exact division (this is supported by \Int).
+} ``general'' division.  Hence we require all such
+number types to provide a static method
+	{\tt NT::hasDivision()}
+that returns a boolean value.  Among the supported {\tt NT},
+only \Rat\ and \expr\ has general division.
+
+
+\subsection{The Template Class \Sturm}
+
+% Class \Sturm\ has been incorporated into \corelib\ since 1.6.
+This class implements the Sturm sequence associated with a polynomial. 
+Starting with Version 1.7 this class can handle \int, \Int, \lng,
+\Rat, \BF, and \expr. The most important being \Int, \BF, and \expr,
+although the last one can be inefficient for polynomials with large degree.
+The constructors are:
+
+\begin{progb}{
+\> \tt  Sturm(); // null constructor\\
+\> \tt  Sturm(PolyNT pp); // constructor from polynomial\\
+\> \tt  Sturm(int n, NT * c);// constructor from an array of coefficients\\
+\> \tt  Sturm(const Sturm\& s);  // copy constructor
+}\end{progb}
+
+After we have constructed a Sturm object based upon some polynomial, we can 
+use the following functions to get more properties as described below.
+
+\subsubsection{Functions in \Sturm\ Class}
+
+\begin{progb}{
+\> \tt  int signVariations(const BigFloat\& x, int sx); \\
+\>\> // Gets the sign variations of the Sturm sequence at a given point\\
+\> \tt  int signVariationsAtPosInfty();\\
+\> \tt  int signVariationsAtNegInfty();\\
+\> \tt  int numberOfRoots(const BigFloat\& x, const BigFloat\& y);\\
+\> \> //Number of roots in the closed interval [x, y] \\
+\> \tt  int numberOfRoots();// number of real roots of the polynomial\\
+\> \tt  int numberOfRootsAbove(const BigFloat \&x);\\
+\> \tt  int numberOfRootsBelow(const BigFloat \&x);\\
+\> \tt  void isolateRoots(const BigFloat \&x, const BigFloat \&y,
+                    BFVecInterval \&v);\\
+\> \> //Isolates all the roots in the interval [x,y] and returns them in v\\
+\> \> //a list of intervals\\
+\> \tt  void isolateRoots(BFVecInterval \&v); \rm// Isolates all the roots\\
+\> \tt  BFInterval isolateRoot(int i); \rm// Isolate the i-th smallest\\
+\> \> // root, if $i < 0$ then we get the i-th largest root\\
+\> \tt  BFInterval isolateRoot(int i, BigFloat x, BigFloat y);\\
+\> \> // Isolate the i-th smallest root in the interval [x,y]\\
+\> \tt  BFInterval firstRootAbove(const BigFloat \&e);\\
+\> \tt  BFInterval firstRootBelow(const BigFloat \&e);\\
+\> \tt  BFInterval mainRoot();//First root above 0\\
+\> \tt	BFInterval refine(const BFInterval\& I, int aprec);\\
+\> \> // Refine the interval \texttt{I} containing the root using bisection\\
+\> \tt  BFInterval refinefirstRootAbove(const BigFloat \&e, int aprec);\\
+\> \> //Get an absolute approximation to aprec of the first root above \texttt{e}.\\
+\> \> //Achieved using the refine method above.\\
+\> \tt  BFInterval refinefirstRootBelow(const BigFloat \&e, int aprec);\\
+\> \> // Similar to previous method, except refines the first root below \texttt{e}\\
+\> \tt  void refineAllRoots( BFVecInterval \&v, int aprec);\\
+\> \> //Refines all the roots to absolute precision aprec (based upon refine)\\
+\> \tt
+}\end{progb}
+
+A main feature of the Sturm Class is that it provides standard
+Newton iteration using which we can converge rapidly to any root of the 
+underlying polynomial. The following methods provide the desired
+functionality.
+
+
+\subsubsection{Newtons Method in \Sturm\ Class}
+
+\begin{progb}{
+
+\> \tt BigFloat newtonIterN(long n, const BigFloat\& bf, BigFloat\& del,\\
+\> \>                        unsigned long \& err);\\
+\> \> // Does n steps of standard Newton's method starting from the initial\\
+\> \> // value bf. The return value is the approximation to the root after\\
+\> \> // n steps. del is an exact BigFloat which is an upper bound on the  \\
+\> \> difference between the n-th and n-1-th approximation, say $del_{n-1}$.\\
+\> \>  err is an upper bound $|del - del_{n-1}|$.\\
+\> \tt BigFloat newtonIterE(int prec, const BigFloat\& bf, BigFloat\& del);\\
+\> \> // Does Newton iteration till $del.uMSB() < -prec$\\
+\> \tt BFInterval newtonRefine(const BFInterval I, int aprec);\\
+\> \> // Given an isolating interval I for a root x*, will return \\
+\> \> //an approximate root x such that $|x-x^*| < 2^{-aprec}$.\\
+\> \> //Assumes that the interval end points are known exactly.\\
+\> \tt void newtonRefineAllRoots( BFVecInterval \&v, int aprec);\\
+\> \> // Refines all the roots of the polynomial to the desired precision\\
+\> \> // aprec using newtonRefine above\\
+\> \tt   bool smaleBoundTest(const BigFloat\& z); // Implementation of \\
+\> \> // Smale's point estimate to determine whether we have reached \\
+\> \> // Newton basin. This is an a posteriori criterion unlike the next.\\
+\> \tt   BigFloat yapsBound(const Polynomial<NT> \& p);// An apriori bound\\
+\> \> // to determine whether we have reached Newton zone.\\
+
+}\end{progb}
+
+
+\subsection{The Template Class \Curve}
+
+Introduced in Version 1.7, this class allows the user 
+to manipulate arbitrary real algebraic curves. 
+The \Curve\ class is derived from the \BiPoly\ class,
+so we begin by describing the \BiPoly\ class:
+
+\begin{progb}{
+\> \tt  BiPoly(); //Constructs the zero bi-poly.\\
+\> \tt	BiPoly(int n);// creates a BiPoly with nominal y-degree of n.\\
+\> \tt  BiPoly(std::vector<Polynomial<NT> > vp); // From vector of Polynomials\\
+\> \tt  BiPoly(Polynomial<NT> p, bool flag=false);\\
+\> \>  //if true, it converts polynomial p(x) into p(y)\\
+\> \>  //if false, it creates the bivariate polynomial y - p(x)\\
+\> \tt  BiPoly(int deg, int *d, NT *C);  //Takes in a list of list of\\
+\> \>  // coefficients.	Each cofficient list represents a polynomial in x\\
+\> \>  //  deg - ydeg of the bipoly\\
+\> \>  //  d[] - array containing the degrees of each coefficient\\
+\> \>  //          (i.e., x poly)\\
+\> \>  //  C[] - list of coefficients, we use array d to select the \\
+\> \>  //        coefficients.\\
+\> \tt   BiPoly(const BiPoly<NT>\&); //Copy constructor\\
+\> \tt   BiPoly(const string\& s, char myX='x', char myY='y');\\
+\> \tt   BiPoly(const char* s, char myX='x', char myY='y');
+}\end{progb}
+
+
+The last two constructors from strings
+are similar to the ones for \Poly.  The syntax of valid input string
+is determined by a BNF grammar that is identical to the
+one for univariate polynomials, except that we now
+allow a second variable {\tt 'y'}.
+
+
+\subsubsection{Assignments}
+\begin{progb} {
+\> \tt  BiPoly<NT> \& operator=( const BiPoly<NT>\& P); // Self-assignment\\
+\> \tt  BiPoly<NT> \& BiPoly<NT>::operator+=( BiPoly<NT>\& P); // Self-addition\\
+\> \tt  BiPoly<NT> \& BiPoly<NT>::operator-=( BiPoly<NT>\& P); //Self-subtraction\\
+\> \tt BiPoly<NT> \& BiPoly<NT>::operator*=( BiPoly<NT>\& P); //Self-multiplication}\end{progb}
+
+\subsubsection{Comparison and Arithmetic}
+\begin{progb}{
+\> \tt bool operator==(const BiPoly<NT>\& P, const BiPoly<NT>\& Q);\\
+\> \> //Equality operator for BiPoly\\
+\> \tt BiPoly<NT> operator+(const BiPoly<NT>\& P, const BiPoly<NT>\& Q);\\
+\> \> //Addition operator for BiPoly\\
+\> \tt BiPoly<NT> operator-(const BiPoly<NT>\& P, const BiPoly<NT>\& Q);\\
+\> \> //Subtraction operator for BiPoly\\
+\> \tt BiPoly<NT> operator*(const BiPoly<NT>\& P, const BiPoly<NT>\& Q);\\
+\> \> //Multiplication operator for BiPoly
+}\end{progb}
+
+\subsubsection{I/O}
+
+\begin{progb}{
+\> \tt  void dump(std::ostream \& os, std::string msg = "");\\
+\> \tt  void dump(std::string msg="");\\
+}\end{progb}
+
+These dump the \BiPoly\ object to a file or standard output as a string.
+
+\subsubsection{Functions}
+
+We have the following methods to manipulate bivariate polynomials.
+
+\begin{progb}{
+\> \tt Polynomial<NT> yPolynomial(const NT \& x); // Returns the univariate\\
+\> \> //polynomial obtained by evaluating the coeffecients at x.\\
+\> \tt  Polynomial<Expr> yExprPolynomial(const Expr \& x);\\
+\> \>   // Expr version of yPolynomial.\\
+\> \tt  Polynomial<BigFloat> yBFPolynomial(const BigFloat \& x);\\
+\> \>   // BF version of yPolynomial\\
+\> \tt  Polynomial<NT> xPolynomial(const NT \& y) ;\\
+\> \>   //   returns the polynomial (in X) when we substitute Y=y\\
+\> \tt  int getYdegree() const; // returns the nominal degree in Y\\
+\> \tt  int getXdegree(); // returns the nominal degree in X.\\
+\> \tt  int getTrueYdegree();//returns the true Y-degree.\\
+\> \tt  Expr eval(Expr x, Expr y);//Evaluate the polynomial at (x,y)\\
+\> \tt  int expand(int n);\\
+\> \>   // Expands the nominal y-degree to n;\\
+\> \>   // Returns n if nominal y-degree is changed to n, else returns -2\\
+\> \tt  int contract();\\
+\> \>   // contract() gets rid of leading zero polynomials\\
+\> \>   // and returns the new (true) y-degree; returns -2 if this is a no-op\\
+\> \tt  BiPoly<NT> \& mulXpoly( Polynomial<NT> \& p);\\
+\> \>   // Multiply by a polynomial in X\\
+\> \tt  BiPoly<NT> \& mulScalar( NT \& c);\\
+\> \>   //Multiply by a constant\\
+\> \tt  BiPoly<NT> \& mulYpower(int s);\\
+\> \>  // mulYpower: Multiply by $Y^i$ (COULD be a divide if i<0)\\
+\> \tt  BiPoly<NT> \& divXpoly( Polynomial<NT> \& p);\\
+\> \>   // Divide by a polynomial in X.\\
+\> \>   // We replace the coeffX[i] by the pseudoQuotient(coeffX[i], P)\\
+\> \tt  BiPoly<NT>  pseudoRemainderY (BiPoly<NT> \& Q);\\
+\> \>   //Using the standard definition of pseudRemainder operation.\\
+\> \>   //	--No optimization!\\
+\> \tt  BiPoly<NT> \& differentiateY();  //Partial Differentiation wrt Y\\
+\> \tt  BiPoly<NT> \& differentiateX();  //Partial Differentiation wrt X\\
+\> \tt  BiPoly<NT> \& differentiateXY(int m, int n);\\
+\> \> //m times wrt X and n times wrt Y\\
+\> \tt  BiPoly<NT> \& convertXpoly();\\
+\> \>   //Represents the bivariate polynomial in (R[X])[Y] as a member\\
+\> \>   //of (R[Y])[X].  This is needed to calculate resultants w.r.t. X.\\
+\> \tt   bool setCoeff(int i, Polynomial<NT> p);\\
+\> \>   //Set the $i$th Coeffecient to the polynomial passed as a parameter\\
+\> \tt  void reverse();// reverse the coefficients of the bi-poly\\
+\> \tt  Polynomial<NT> replaceYwithX();\\
+\> \tt  BiPoly<NT>\& pow(unsigned int n);  //Binary-power operator\\
+\> \tt  BiPoly<NT> getbipoly(string s);\\
+\> \>   //Returns a Bipoly corresponding to s, which is supposed to\\
+\> \>   //contain as place-holders the chars 'x' and 'y'.\\
+}\end{progb}
+
+There are other useful friend functions for \BiPoly\ class:
+
+\begin{progb}{
+\> \tt bool zeroPinY(BiPoly<NT> \& P);\\
+\> \> //checks whether a Bi-polynomial is a zero Polynomial\\
+\> \tt BiPoly<NT> gcd( BiPoly<NT>\& P ,BiPoly<NT>\& Q);\\
+\> \> //   This gcd is based upon the subresultant PRS to avoid\\
+\> \> //   exponential coeffecient growth and gcd computations, both of which \\
+\> \> //   are expensive since the coefficients are polynomials\\
+\> \tt Polynomial<NT>  resY( BiPoly<NT>\& P ,BiPoly<NT>\& Q);\\
+\> \> //      Resultant of Bi-Polys P and Q w.r.t. Y.\\
+\> \> //      So the resultant is a polynomial in X\\
+\> \tt BiPoly<NT>  resX( BiPoly<NT>\& P ,BiPoly<NT>\& Q);\\
+\> \> //      Resultant of Bi-Polys P and Q w.r.t. X.\\
+\> \>//      So the resultant is a polynomial in Y\\
+\> \>//	We first convert P, Q to polynomials in X. Then \\
+\> \>// 	call resY and then turn it back into a polynomial in Y\\
+}\end{progb}
+
+
+
+We now come to the derived class \Curve.  All the methods
+provided for bivariate polynomials are available for curves as well,
+but there are two additional functions:
+
+\begin{progb}{
+\> \tt   int verticalIntersections(const BigFloat \& x, BFVecInterval \& vI,\\
+\>\> \> 			  int aprec=0);\\
+\> \>  // The list vecI is passed an isolating intervals for y's such \\
+\> \>  // that (x,y) lies on the curve.\\
+\> \>  // If aprec is non-zero (!), the intervals have with $<2^{-aprec}$.\\
+\> \>  // Returns $-2$ if curve equation does not depend on Y,\\
+\> \>  //       -1 if infinitely many roots at x,\\
+\> \>  //    	0 if no roots at x,\\
+\> \>  //    	1 otherwise\\
+\> \tt  int  plot( BigFloat eps=0.1, BigFloat xmin=-1.0,\\
+\> \> \>     BigFloat ymin=-1.0, BigFloat xmax=1.0, BigFloat ymax=1.0, int fileNo=1);\\
+\> \>  //    Gives the points on the curve at resolution "eps".  Currently,\\
+\> \>   //    eps is viewed as delta-x step size.\\
+\> \>   //    The display is done in the rectangle [xmin, ymin, xmax, ymax].\\
+\> \>   //    The output is written into a file in the format specified\\
+\> \>   //    by our drawcurve function (see COREPATH/ext/graphics).\\
+\> \>   //    Heuristic: the open polygonal lines end when number of roots\\
+\> \>   //    changes.
+}\end{progb}
+
+%% END

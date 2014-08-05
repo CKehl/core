@@ -1,0 +1,83 @@
+===================== SOFTWARE RELEASE ANNOUNCEMENT ==========================
+
+June 20, 2003:
+Core Library Version 1.6 is now available for free download at
+	
+		http://cs.nyu.edu/exact/core/
+
+The Core Library (CORE) is a collection of C/C++ classes to support 
+computation with real algebraic numbers (+,-,x,/,sqrt and rootOf), under a variety
+of precision requirements.
+
+Numerical nonrobustness is a widely acknowledged problem.  It has proven
+particularly intractable in the context of geometric algorithms where
+numerical data and combinatorial data are intermixed in a strongly constrained
+manner.  Recent research in computational geometry has
+demonstrated a variety of techniques based on the principles of
+Exact Geometric Computation (EGC) that can address such problems.
+A basic goal of our library is to make such techniques easily accessible to 
+the wider community of programmers and researchers.
+
+Basic CORE Features:
+   -- ease of use:
+	Any C/C++ programmer can write numerical or geometric
+	code that are fully robust just by calling our Library.
+   -- ease of migration:
+	Many existing C/C++ programs can be converted into robust CORE
+	programs with minimal effort.
+   -- natural and novel numerical accuracy model:
+	Users can choose and get the numerical accuracy that best fit
+	their applications. 
+   -- state of art technology:
+	The precision-driven approach to EGC, best known root bounds,
+	filter technology, etc, will be incorporated into the library
+	as the field progresses.  In this way, the user's application program
+	will automatically be upgraded (at the cost of re-compilation).
+   -- small system:
+	It can serve as the "robust core" of your own applications.
+	About 550KB (including source, extensions, demos)
+	when gmp and documentation is not included.  Otherwise, the full
+	distribution is 3.6MB.
+   -- extensively tested on Sun Sparc, Linux, cygwin and Windows platforms.
+
+What is new with CORE 1.6 ?
+   -- Arbitrary real algebraic numbers is now supported
+   -- Faster code (can be significantly faster than CORE 1.5)
+   -- Fully compatible with CGAL Library (Core Library is also
+   	directly distributed with the CGAL Library)
+   -- Improved root bounds (can be significant)
+   -- Header files (i.e., API) for Expr and Real are now consistent
+	This was necessary to support Level 2 accuracy.
+	In general, slightly better support for Levels 2 and 4.
+   -- Polynomial package directly incorporated into the Library
+   -- Compatibility with gmp 4.1, and gcc 3.3
+   -- Updated Core Library Tutorial
+   -- Various new features:
+        --Expr can return a double interval containing its true value 
+	--
+   -- Various Bug fixes: output
+
+We welcome your comments and input.
+
+-- Chee Yap (yap@cs.nyu.edu)
+   Sylvain Pion (Sylvain.Pion@mpi-sb.mpg.de)
+   Zilin Du (zilin@cs.nyu.edu)
+   Vikram Sharma (sharma@cs.nyu.edu)
+   June 20, 2003
+
+                         |============================================= 
+                         | Exact Computation Project
+                         | Department of Computer Science
+                         | Courant Institute of Mathematical Sciences
+                         | New York University
+                         | 251 Mercer Street
+                         | New York, NY 10012, USA
+                         | 
+                         | For further information:
+                         |    http://cs.nyu.edu/exact/
+                         |    mailto://exact@cs.nyu.edu.
+                         | 
+                         | Supported by NSF/ITR Grant CCR-0082056.
+                         |============================================= 
+
+===================== SOFTWARE RELEASE ANNOUNCEMENT ==========================

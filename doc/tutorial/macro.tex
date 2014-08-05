@@ -1,0 +1,119 @@
+% Macros for CORE Documents 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% UNDATE THESE MACROS FOR EACH RELEASE!
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Current Core Library Version
+\newcommand{\versionNo}{1.7}
+% Current Release Date
+\newcommand{\releaseDate}{August 15, 2004}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\ignore}[1]{}
+\newcommand{\dt}[1]{{\em #1}}
+\newcommand{\RR}{{\mathbb R}}
+
+\newcommand{\corelib}{Core Library}
+\newcommand{\core}{\mbox{\tt CORE}}
+\newcommand{\corex}{\mbox{\tt COREX}}
+
+\newcommand{\lidia}{\mbox{\tt LiDIA}}
+\newcommand{\cgal}{\mbox{\tt CGAL}}
+\newcommand{\cln}{\mbox{\tt CLN}}
+
+\newcommand{\rexpr}{\mbox{\tt Real/Expr}}
+\newcommand{\real}{\mbox{\tt Real}}
+\newcommand{\realrep}{\mbox{\tt RealRep}}
+\newcommand{\expr}{\mbox{\tt Expr}}
+\newcommand{\exprep}{\mbox{\tt ExprRep}}
+
+\newcommand{\rep}{\mbox{\tt rep}}
+\renewcommand{\int}{\mbox{\tt int}}
+\newcommand{\lng}{\mbox{\tt long}}
+\newcommand{\ulong}{\mbox{\tt unsigned long}}
+\newcommand{\extlong}{\mbox{\tt extLong}}
+\newcommand{\float}{\mbox{\tt float}}
+\newcommand{\double}{\mbox{\tt double}}
+\newcommand{\str}{\mbox{\tt string}}
+\newcommand{\Int}{\mbox{\tt BigInt}}
+\newcommand{\Rat}{\mbox{\tt BigRat}}
+\newcommand{\BF}{\mbox{\tt BigFloat}}
+\newcommand{\Poly}{\mbox{\tt Polynomial}}
+\newcommand{\Sturm}{\mbox{\tt Sturm}}
+\newcommand{\BiPoly}{\mbox{\tt BiPoly}}
+\newcommand{\Curve}{\mbox{\tt Curve}}
+
+
+% DO WE REALLY WANT "Long" below?
+\newcommand{\coreInfty}{\mbox{\tt CORE\_INFTY}}
+\newcommand{\posInfty}{\mbox{\tt extLong::CORE\_posInfty}}
+\newcommand{\negInfty}{\mbox{\tt extLong::CORE\_negInfty}}
+\newcommand{\NaN}{\mbox{\tt extLong::CORE\_NaN}}
+\newcommand{\defrel}{\mbox{\tt defRelPrec}}
+\newcommand{\defabs}{\mbox{\tt defAbsPrec}}
+\newcommand{\defprt}{\mbox{\tt defPrtDgt}}
+\newcommand{\definput}{\mbox{\tt defInputDigits}}
+\newcommand{\defBFinput}{\mbox{\tt defBigFloatInputDigits}}
+\newcommand{\defOutputDig}{\mbox{\tt defOutputDigits}}
+
+\newcommand{\cpp}{\mbox{\tt C++}}
+\newcommand{\candcpp}{\mbox{\tt C/C++}}
+
+\newcommand{\gnu}{\mbox{\tt GNU}}
+\newcommand{\gmp}{\mbox{\tt GMP}}
+\newcommand{\gpp}{\mbox{\tt g++}}
+\newcommand{\gppandgcc}{\mbox{\tt g++/gcc}}
+
+\newcommand{\installpath}{\mbox{\tt \$\{INSTALL\_PATH\}}}
+% \newcommand{\corepath}{\mbox{\tt \$\{INSTALL\_PATH\}/core\_vX.Y/}}
+\newcommand{\corepath}{\mbox{\tt \$\{CORE\_PATH\}}}
+\newcommand{\coredistfile}{\mbox{\tt core\_vX.Y.Z.tgz}}
+\newcommand{\docdir}{\mbox{\tt \$\{CORE\_PATH\}/doc}}
+\newcommand{\extdir}{\mbox{\tt \$\{CORE\_PATH\}/ext}}
+\newcommand{\examplesdir}{\mbox{\tt \$\{CORE\_PATH\}/progs}}
+\newcommand{\progsdir}{\mbox{\tt \$\{CORE\_PATH\}/progs}}
+\newcommand{\includedir}{\mbox{\tt \$\{CORE\_PATH\}/inc}}
+\newcommand{\includegmpdir}{\mbox{\tt \$\{CORE\_PATH\}/gmp/include}}
+\newcommand{\libdir}{\mbox{\tt \$\{CORE\_PATH\}/lib}}
+\newcommand{\gmplibdir}{\mbox{\tt \$\{CORE\_PATH\}/gmp/lib}}
+\newcommand{\win}{\mbox{\tt \$\{CORE\_PATH\}/win32}}
+% no longer used:
+	% \newcommand{\lidiadir}{\mbox{\tt \$\{CORE\_PATH\}/lidia}}
+\newcommand{\srcdir}{\mbox{\tt \$\{CORE\_PATH\}/src}}
+\newcommand{\tempdir}{\mbox{\tt \$\{CORE\_PATH\}/tmp}}
+
+\newcommand{\gmplink}{\mbox{\tt \$\{CORE\_PATH\}/gmp}}
+
+\newcommand{\val}{\mbox{\rm Val}}
+\newcommand{\err}{\mbox{\rm Err}}
+\newcommand{\preci}{\mbox{\rm Prec}}
+\newcommand{\appr}{\mbox{\rm Approx}}
+
+\newenvironment{prog}{\begin{tabbing}
+xx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=\kill \\}
+{\end{tabbing}}
+
+\newenvironment{progb}[1]{
+\vspace{+\abovedisplayskip}
+\fbox{
+\begin{minipage}{.9\textwidth}
+\vspace{-\abovedisplayskip}
+\begin{prog}#1\end{prog}
+\vspace{-\abovedisplayskip}
+\end{minipage}
+}
+\vspace{+\abovedisplayskip}
+}
+
+\newcommand{\draftdimensions}{
+        \setlength{\oddsidemargin}{-1cm}
+        \setlength{\evensidemargin}{-1cm}
+% \setlength{\textwidth}{1.2\textwidth}
+        \setlength{\textwidth}{7in}
+% \setlength{\textheight}{1.2\textheight}
+        \setlength{\textheight}{9in}
+        \setlength{\topmargin}{-5mm}
+        \setlength{\parindent}{0mm}
+        \setlength{\parskip}{5mm}
+}
+

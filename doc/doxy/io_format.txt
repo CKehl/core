@@ -1,0 +1,94 @@
+C++ I/O formatting:
+
+1. Access format flags:
+  a) member functions:
+   
+  setf(flags)       -- set "flags" as additional format flags and return 
+                       the previous state of all flags
+  setf(flags, mask) -- set "flags" as the new format flags of the group
+                       identified by "mask" and return the previous state
+  unsetf(flags)     -- clear "flags"
+  flags()           -- return all set format flags
+  flags(flags)      -- set "flags" as the new format flags and return the 
+                       previous state of all flags
+  copyfmt(stream)   -- copy all format definitions from "stream"
+
+  -- you can manipulate multiple flags at once by combining them using the 
+  "binary or" operator (|). 
+  -- "flags" has type: ios::fmtflags
+
+  b) manipulators: (you need include the header file <iomanip>)
+
+  setiosflags(), resetiosflags()  
+
+2. I/O format of Boolean values
+
+  flags:
+  boolalpha -- if set, specifies the use of textual representation, otherwise
+                specifies the use of numeric representation.
+
+  manipulators: boolalpha, noboolalpha.
+
+3. Field width, Fill character and Adjustment (TODO)
+
+4. Positive sign and Uppercase letters
+  
+  flags:
+  showpos   -- write a positive sign on the positive numbers
+  uppercase -- uses uppercase letters (for integer using hex and floatig-point
+               numbers using scientific notation)
+   
+  manipulators: showpos, noshowpos, uppercase, nouppercase
+
+5. Numeric base
+
+  flags: (in ios::basefield)
+    oct  -- r/w octal
+    dec  -- r/w decimal (default)
+    hex  -- r/w hexadecimal
+    None -- r/w according to the leading characters of the integer value
+            (starting with 0x or 0X is read as hex, with 0 is read as octal)
+
+  manipulators: oct, dec, hex
+
+  two ways to switch these flags:
+   a) clear one flag and set another:
+      std::cout.unsetf(std::ios::dec);
+      std::cout.setf(std::ios::hex);
+   b) set one flag and clear all other flags in the group automatically
+      std::cout.setf(std::ios::hex, std::ios::basefield);
+
+  flag: showbase -- if set, indicates the numberic base
+  manipulator: showbase, noshowbase
+
+6. Floating-point notation
+
+  flags: (in ios::floatfield)
+    fixed      -- use decimal notation
+    scientific -- use scientific notation
+    None       -- use the "best" of these two (default)
+
+  member functions:
+    precision() -- return the actual precision of floating-point values
+    precision(val) -- set "val" as the new precision and return the old
+
+  -- if scientific notation is used, precision() defines the number of the 
+     decimal places in the fractional part. In all cases, the remainder is
+     not cut off but rounded.
+  -- the default precision is six decimal places.
+  -- by default, neither ios::fixed or ios::scientific is set. In this case,
+     the notation used depends on the value written. All meaningful but at most
+     precision() decimal places are written as follows: A leading zero before
+     the decimal point and/or all trailing zeros and potentially even the
+     decimal point are removed. If precision() places are sufficient, decimal
+     notation is used, otherwise, scientific notation is used.
+
+  flag: showpoint -- always writes a decimal point
+  manipulator: showpoint, noshowpoint, setprecision(val), fixed, scientific
+
+7. General Formatting Definitions
+
+  flags:
+    skipws  -- skips leading whitespaces when reading a value with operator>>
+    unitbuf -- flushes the output buffer after each write operation
+

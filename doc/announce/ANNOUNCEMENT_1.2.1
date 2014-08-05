@@ -1,0 +1,43 @@
+============== SOFTWARE RELEASE ANNOUNCEMENT ===================
+
+
+		Core Library Version 1.2.1
+			Jan 12, 2000
+		************************
+
+This is a minor modification of version 1.2.
+
+1) Each expression node is now given its
+	own progressive flag (a Boolean value).
+	If the flag is true, it will use progressive
+	evaluation at that node.
+
+	Otherwise, it goes directly to the root bound.
+	Usage: if you have a good reason to think that
+	a particular expression is identically zero, then
+	you can set this flag to false.  The default
+	is true.  In general, it is dangerous
+	to set this flag to true.
+
+	The default value of each node is that of the global
+	progressive evaluation flag (which the user can set
+	at any time).
+
+2) The user can now create a debugging version of the
+	Core Library and its programs.  In the top
+	level, the file Make.config has a line to
+	set VER=Debug.  The non-debug version would
+	assign the empty string to VER.  
+
+	The debugging version essentially compiles
+	the programs with the -g compiler option, etc.
+
+3) Bug fixed in square-root routine.  In BigFloat.cc,
+	the algorithm for Newton iteration for
+	square-roots may crash and give a zero-divisor
+	error.  This is because when the mantissa is
+	right shifted in the iteration, the function
+	fails to check if the msb is shifted out.
+
+============== SOFTWARE RELEASE ANNOUNCEMENT ===================
+
